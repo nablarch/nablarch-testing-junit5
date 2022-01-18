@@ -8,12 +8,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * {@link BatchRequestTestExtension} の単体テスト。
+ * {@link BatchRequestTestExtension} を実際に JUnit 5 で動かすテスト。
  *
  * @author Tanaka Tomoyuki
  */
 @BatchRequestTest
-public class BatchRequestTestExtensionTest {
+public class BatchRequestTestExtensionIntegrationTest {
 
     BatchRequestTestSupport support;
 

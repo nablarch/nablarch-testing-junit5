@@ -8,16 +8,16 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * {@link EntityTestExtension}の単体テスト。
+ * {@link EntityTestExtension} を実際に JUnit5 で動かすテスト。
  * @author Tanaka Tomoyuki
  */
 @EntityTest
-class EntityTestExtensionTest {
+class EntityTestExtensionIntegrationTest {
 
     EntityTestSupport support;
 
     @Test
-    void test() {
+    void EntityTestExtensionが動作することをテスト() {
         assertThat(support, is(instanceOf(EntityTestSupport.class)));
     }
 }

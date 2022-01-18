@@ -8,9 +8,12 @@ import nablarch.test.RepositoryInitializer;
 import nablarch.test.core.batch.BatchRequestTestSupport;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.event.TestEventListener;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+
+import java.lang.reflect.Field;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -37,6 +40,11 @@ class TestEventDispatcherExtensionTest {
     @Mocked
     ExtensionContext mockExtensionContext;
 
+    @BeforeEach
+    void beforeAll() {
+        RepositoryInitializer.recreateRepository("unit-test.xml");
+    }
+
     @Test
     void 実際に生成されたインスタンスと互換性があるフィールドは可視性に関係なくインスタンスがインジェクションされることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
@@ -61,8 +69,18 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void beforeAllでTestEventListenerのbeforeTestSuiteとbeforeTestClassメソッドが実行されることをテスト() {
-        RepositoryInitializer.initializeDefaultRepository();
+    void beforeAllでTestEventListenerのbeforeTestSuiteとbeforeTestClassメソッドが実行されることをテスト() throws Exception {
+        /*
+         * TestEventDispatcher の first クラスフィールドを true に設定する。
+         * このクラスフィールドは、 beforeTestSuite() を一度実行すると false に設定され、
+         * 以後 true になることはない。
+         * そして、このクラスフィールドは外部からアクセス不可能な static 変数で定義されている。
+         * このため、他のテストで一度でも first が false になっていると、本テストが正常に実施できない。
+         * この問題を回避するため、リフレクションで強制的に true にしてからテストするようにしている。
+         */
+        final Field first = TestEventDispatcher.class.getDeclaredField("first");
+        first.setAccessible(true);
+        first.set(null, true);
 
         MockTestEventListener listener = SystemRepository.get("mockTestEventListener");
 
