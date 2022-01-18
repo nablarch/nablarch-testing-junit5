@@ -15,7 +15,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @BatchRequestTest
 public class BatchRequestTestExtensionTest {
 
-    public BatchRequestTestSupport support;
+    BatchRequestTestSupport support;
 
     @Test
     public void BatchRequestTestExtensionが動作していることをテスト() {

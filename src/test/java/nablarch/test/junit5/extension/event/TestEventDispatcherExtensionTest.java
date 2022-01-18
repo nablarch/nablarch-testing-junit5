@@ -5,6 +5,7 @@ import mockit.Mocked;
 import mockit.Verifications;
 import nablarch.core.repository.SystemRepository;
 import nablarch.test.RepositoryInitializer;
+import nablarch.test.core.batch.BatchRequestTestSupport;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.event.TestEventListener;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ class TestEventDispatcherExtensionTest {
 
     public TestEventDispatcher publicDispatcher;
     public MockTestEventDispatcher mockTestEventDispatcher;
+    public BatchRequestTestSupport batchRequestTestSupport;
     protected TestEventDispatcher protectedDispatcher;
     TestEventDispatcher packagePrivateDispatcher;
     private TestEventDispatcher privateDispatcher;
@@ -36,14 +38,16 @@ class TestEventDispatcherExtensionTest {
     ExtensionContext mockExtensionContext;
 
     @Test
-    void 実際に生成されたインスタンスと互換性があり_publicなフィールドにインスタンスがインジェクションされることをテスト() throws Exception {
+    void 実際に生成されたインスタンスと互換性があるフィールドは可視性に関係なくインスタンスがインジェクションされることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         assertThat(publicDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
         assertThat(mockTestEventDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
-        assertThat(protectedDispatcher, is(nullValue()));
-        assertThat(packagePrivateDispatcher, is(nullValue()));
-        assertThat(privateDispatcher, is(nullValue()));
+        assertThat(protectedDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
+        assertThat(packagePrivateDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
+        assertThat(privateDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
+
+        assertThat(batchRequestTestSupport, is(nullValue()));
     }
 
     @Test

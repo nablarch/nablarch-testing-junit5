@@ -1,5 +1,6 @@
 package nablarch.test.junit5.extension.event;
 
+import nablarch.test.core.db.DbAccessTestSupport;
 import nablarch.test.event.TestEventDispatcher;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -54,6 +55,7 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
                 ReflectionUtils.HierarchyTraversalMode.BOTTOM_UP);
 
         for (Field field : fields) {
+            field.setAccessible(true);
             Object value = field.get(testInstance);
             if (value != null) {
                 String message =
@@ -80,8 +82,7 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
      * @return インジェクション対象の判定を行うための {@link Predicate}
      */
     private Predicate<Field> buildInjectionTargetCondition(Class<? extends TestEventDispatcher> supportClass) {
-        return field -> Modifier.isPublic(field.getModifiers())
-                && field.getType().isAssignableFrom(supportClass);
+        return field -> field.getType().isAssignableFrom(supportClass);
     }
 
     @Override
