@@ -80,7 +80,7 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
      * @return インジェクション対象の判定を行うための {@link Predicate}
      */
     private Predicate<Field> buildInjectionTargetCondition(Class<? extends TestEventDispatcher> supportClass) {
-        return field -> !Modifier.isPrivate(field.getModifiers())
+        return field -> Modifier.isPublic(field.getModifiers())
                 && field.getType().isAssignableFrom(supportClass);
     }
 

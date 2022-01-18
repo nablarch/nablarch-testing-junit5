@@ -7,10 +7,8 @@ import nablarch.core.repository.SystemRepository;
 import nablarch.test.RepositoryInitializer;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.event.TestEventListener;
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -27,9 +25,9 @@ class TestEventDispatcherExtensionTest {
     final MockTestEventDispatcherExtension sut = new MockTestEventDispatcherExtension();
 
     public TestEventDispatcher publicDispatcher;
+    public MockTestEventDispatcher mockTestEventDispatcher;
     protected TestEventDispatcher protectedDispatcher;
     TestEventDispatcher packagePrivateDispatcher;
-    MockTestEventDispatcher mockTestEventDispatcher;
     private TestEventDispatcher privateDispatcher;
 
     @Mocked
@@ -38,24 +36,24 @@ class TestEventDispatcherExtensionTest {
     ExtensionContext mockExtensionContext;
 
     @Test
-    void 実際に生成されたインスタンスと互換性があり_privateでないフィールドにインスタンスがインジェクションされることをテスト() throws Exception {
+    void 実際に生成されたインスタンスと互換性があり_publicなフィールドにインスタンスがインジェクションされることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         assertThat(publicDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
-        assertThat(protectedDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
-        assertThat(packagePrivateDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
         assertThat(mockTestEventDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
+        assertThat(protectedDispatcher, is(nullValue()));
+        assertThat(packagePrivateDispatcher, is(nullValue()));
         assertThat(privateDispatcher, is(nullValue()));
     }
 
     @Test
     void インジェクション対象のフィールドがnullでない場合はエラーになることをテスト() {
-        this.protectedDispatcher = new MockTestEventDispatcher();
+        this.mockTestEventDispatcher = new MockTestEventDispatcher();
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> sut.postProcessTestInstance(this, null));
 
-        assertThat(exception.getMessage(), is("The protectedDispatcher field of TestEventDispatcherExtensionTest is already set some value."));
+        assertThat(exception.getMessage(), is("The mockTestEventDispatcher field of TestEventDispatcherExtensionTest is already set some value."));
     }
 
     @Test
@@ -130,23 +128,6 @@ class TestEventDispatcherExtensionTest {
         new Verifications() {{
             mockInvocation.proceed(); times = 1;
         }};
-    }
-
-    /**
-     * テストのための {@link TestEventDispatcher} の仮実装クラス。
-     */
-    public static class MockTestEventDispatcher extends TestEventDispatcher {
-    }
-
-    /**
-     * テストのための {@link TestEventDispatcherExtension} の仮実装クラス。
-     */
-    public static class MockTestEventDispatcherExtension extends TestEventDispatcherExtension {
-
-        @Override
-        protected TestEventDispatcher createSupport(Object testInstance, ExtensionContext context) {
-            return new MockTestEventDispatcher();
-        }
     }
 
     public static class MockTestEventListener implements TestEventListener {
