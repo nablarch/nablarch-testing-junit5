@@ -10,4 +10,9 @@
   <list name="testEventListeners">
     <component-ref name="mockTestEventListener" />
   </list>
+
+  <component name="connectionFactory"
+             class="nablarch.test.junit5.extension.db.MockConnectionFactory" />
+  <component name="transactionFactory"
+             class="nablarch.test.junit5.extension.db.MockTransactionFactory" />
 </component-configuration>

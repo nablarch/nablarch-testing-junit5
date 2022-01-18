@@ -13,4 +13,16 @@ public class DbAccessTestExtension extends TestEventDispatcherExtension<DbAccess
     protected DbAccessTestSupport createSupport(Object testInstance, ExtensionContext context) {
         return new DbAccessTestSupport(testInstance.getClass());
     }
+
+    @Override
+    public void beforeEach(ExtensionContext context) {
+        super.beforeEach(context);
+        support.beginTransactions();
+    }
+
+    @Override
+    public void afterEach(ExtensionContext context) {
+        super.afterEach(context);
+        support.endTransactions();
+    }
 }
