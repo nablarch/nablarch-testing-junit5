@@ -28,9 +28,10 @@ import java.util.function.Predicate;
  * <p>
  * 各 Extension はこのクラスを継承して作成することで、共通する部分の処理を省略できる。
  * </p>
+ * @param <S> インスタンスを生成するサポートクラスの型
  * @author Tanaka Tomoyuki
  */
-public abstract class TestEventDispatcherExtension implements
+public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher> implements
         TestInstancePostProcessor,
         BeforeAllCallback,
         BeforeEachCallback,
@@ -41,14 +42,16 @@ public abstract class TestEventDispatcherExtension implements
     /**
      * Extension が生成しテストクラスにインジェクションする、サポートクラスのインスタンス。
      */
-    protected TestEventDispatcher support;
+    protected S support;
 
     @Override
     public void postProcessTestInstance(final Object testInstance, ExtensionContext context) throws Exception {
         support = createSupport(testInstance, context);
 
-        Predicate<Field> condition = this::isInjectionTarget;
-        List<Field> fields = ReflectionUtils.findFields(testInstance.getClass(), condition, ReflectionUtils.HierarchyTraversalMode.BOTTOM_UP);
+        Predicate<Field> isInjectionTarget = buildInjectionTargetCondition(support.getClass());
+        List<Field> fields = ReflectionUtils.findFields(testInstance.getClass(),
+                isInjectionTarget,
+                ReflectionUtils.HierarchyTraversalMode.BOTTOM_UP);
 
         for (Field field : fields) {
             Object value = field.get(testInstance);
@@ -68,16 +71,17 @@ public abstract class TestEventDispatcherExtension implements
      * @param context コンテキスト
      * @return サポートクラスのインスタンス
      */
-    protected abstract TestEventDispatcher createSupport(final Object testInstance, ExtensionContext context);
+    protected abstract S createSupport(final Object testInstance, ExtensionContext context);
 
     /**
-     * 指定されたフィールドが、サポートクラスのインスタンスをインジェクションする対象となるか判定する。
-     * @param field 判定対象のフィールド
-     * @return インジェクション対象である場合は {@code ture}
+     * 指定されたフィールドが、サポートクラスのインスタンスをインジェクションする対象となるか判定するための
+     * {@link Predicate} を生成する。
+     * @param supportClass 生成されたサポートクラスの {@link Class} オブジェクト
+     * @return インジェクション対象の判定を行うための {@link Predicate}
      */
-    private boolean isInjectionTarget(Field field) {
-        return !Modifier.isPrivate(field.getModifiers())
-                && field.getType().isAssignableFrom(TestEventDispatcher.class);
+    private Predicate<Field> buildInjectionTargetCondition(Class<? extends TestEventDispatcher> supportClass) {
+        return field -> !Modifier.isPrivate(field.getModifiers())
+                && field.getType().isAssignableFrom(supportClass);
     }
 
     @Override

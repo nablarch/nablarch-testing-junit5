@@ -8,7 +8,7 @@ import nablarch.test.RepositoryInitializer;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.event.TestEventListener;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
@@ -23,31 +23,33 @@ import static org.junit.Assert.assertThrows;
  * {@link TestEventDispatcherExtension}の単体テスト。
  * @author Tanaka Tomoyuki
  */
-public class TestEventDispatcherExtensionTest {
-    private final MockTestEventDispatcherExtension sut = new MockTestEventDispatcherExtension();
+class TestEventDispatcherExtensionTest {
+    final MockTestEventDispatcherExtension sut = new MockTestEventDispatcherExtension();
 
     public TestEventDispatcher publicDispatcher;
     protected TestEventDispatcher protectedDispatcher;
     TestEventDispatcher packagePrivateDispatcher;
+    MockTestEventDispatcher mockTestEventDispatcher;
     private TestEventDispatcher privateDispatcher;
 
     @Mocked
-    private Invocation<Void> mockInvocation;
+    Invocation<Void> mockInvocation;
     @Mocked
-    private ExtensionContext mockExtensionContext;
+    ExtensionContext mockExtensionContext;
 
     @Test
-    public void 型が一致するprivateでないフィールドにインスタンスがインジェクションされることをテスト() throws Exception {
+    void 実際に生成されたインスタンスと互換性があり_privateでないフィールドにインスタンスがインジェクションされることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         assertThat(publicDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
         assertThat(protectedDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
         assertThat(packagePrivateDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
+        assertThat(mockTestEventDispatcher, is(instanceOf(MockTestEventDispatcher.class)));
         assertThat(privateDispatcher, is(nullValue()));
     }
 
     @Test
-    public void インジェクション対象のフィールドがnullでない場合はエラーになることをテスト() {
+    void インジェクション対象のフィールドがnullでない場合はエラーになることをテスト() {
         this.protectedDispatcher = new MockTestEventDispatcher();
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
@@ -57,7 +59,7 @@ public class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    public void beforeAllでTestEventListenerのbeforeTestSuiteとbeforeTestClassメソッドが実行されることをテスト() {
+    void beforeAllでTestEventListenerのbeforeTestSuiteとbeforeTestClassメソッドが実行されることをテスト() {
         RepositoryInitializer.initializeDefaultRepository();
 
         MockTestEventListener listener = SystemRepository.get("mockTestEventListener");
@@ -75,7 +77,7 @@ public class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    public void beforeEachでTestEventListenerのbeforeTestMethodメソッドが実行されることをテスト() throws Exception {
+    void beforeEachでTestEventListenerのbeforeTestMethodメソッドが実行されることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         MockTestEventListener listener = SystemRepository.get("mockTestEventListener");
@@ -88,7 +90,7 @@ public class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    public void afterEachでTestEventListenerのafterTestMethodメソッドが実行されることをテスト() throws Exception {
+    void afterEachでTestEventListenerのafterTestMethodメソッドが実行されることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         MockTestEventListener listener = SystemRepository.get("mockTestEventListener");
@@ -101,7 +103,7 @@ public class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    public void afterAllでTestEventListenerのafterTestClassメソッドが実行されることをテスト() throws Exception {
+    void afterAllでTestEventListenerのafterTestClassメソッドが実行されることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         MockTestEventListener listener = SystemRepository.get("mockTestEventListener");
@@ -114,7 +116,7 @@ public class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    public void interceptTestMethodを実行すると_TestNameのRuleがエミュレートされ_本来のテストもコールされることをテスト() throws Throwable {
+    void interceptTestMethodを実行すると_TestNameのRuleがエミュレートされ_本来のテストもコールされることをテスト() throws Throwable {
         new Expectations() {{
             mockExtensionContext.getDisplayName(); result = "テスト表示名";
             mockExtensionContext.getRequiredTestClass(); result = TestEventDispatcherExtensionTest.class;
