@@ -1,4 +1,16 @@
 package nablarch.test.junit5.extension;
 
-public class TestSupportExtension {
+import nablarch.test.TestSupport;
+import nablarch.test.junit5.extension.event.TestEventDispatcherExtension;
+import org.junit.jupiter.api.extension.ExtensionContext;
+
+/**
+ * {@link TestSupport} を JUnit 5 で使用するための Extension 実装。
+ * @author Tanaka Tomoyuki
+ */
+public class TestSupportExtension extends TestEventDispatcherExtension<TestSupport> {
+    @Override
+    protected TestSupport createSupport(Object testInstance, ExtensionContext context) {
+        return new TestSupport(testInstance.getClass());
+    }
 }
