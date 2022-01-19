@@ -7,9 +7,11 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.junit.platform.commons.util.ReflectionUtils;
+import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
@@ -96,18 +98,7 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
 
     @Override
     public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-        Class<?> testClass = extensionContext.getRequiredTestClass();
-        String testName = extensionContext.getDisplayName();
-        Description description = Description.createTestDescription(testClass, testName);
-
-        Statement statement = support.testName.apply(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                invocation.proceed();
-            }
-        }, description);
-
-        statement.evaluate();
+        emulateRule(support.testName, invocation, invocationContext, extensionContext);
     }
 
     @Override
@@ -129,5 +120,36 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
      */
     protected <A extends Annotation> A findAnnotation(Object testInstance, Class<A> annotationClass) {
         return testInstance.getClass().getAnnotation(annotationClass);
+    }
+
+    /**
+     * JUnit4 の {@link TestRule} の動作を JUnit 5 環境上で再現する。
+     * <p>
+     * 引数に渡す {@link Invocation}, {@link ReflectiveInvocationContext}, {@link ExtensionContext} は、
+     * {@link #interceptTestMethod(Invocation, ReflectiveInvocationContext, ExtensionContext)} で
+     * 受け取った引数をそのまま連携する。
+     * </p>
+     *
+     * @param testRule 再現対象の {@link TestRule}
+     * @param invocation {@link Invocation}
+     * @param invocationContext {@link ReflectiveInvocationContext}
+     * @param extensionContext {@link ExtensionContext}
+     */
+    protected void emulateRule(TestRule testRule,
+                               Invocation<Void> invocation,
+                               ReflectiveInvocationContext<Method> invocationContext,
+                               ExtensionContext extensionContext) throws Throwable {
+        Class<?> testClass = extensionContext.getRequiredTestClass();
+        String testName = extensionContext.getRequiredTestMethod().getName();
+        Description description = Description.createTestDescription(testClass, testName);
+
+        Statement statement = testRule.apply(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                invocation.proceed();
+            }
+        }, description);
+
+        statement.evaluate();
     }
 }

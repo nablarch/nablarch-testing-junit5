@@ -5,14 +5,29 @@
         xsi:schemaLocation="http://tis.co.jp/nablarch/component-configuration https://nablarch.github.io/schema/component-configuration.xsd">
 
   <component name="mockTestEventListener"
-             class="nablarch.test.junit5.extension.event.TestEventDispatcherExtensionTest$MockTestEventListener" />
+             class="nablarch.test.junit5.extension.event.TestEventDispatcherExtensionTest$MockTestEventListener"
+             autowireType="None"  />
 
   <list name="testEventListeners">
     <component-ref name="mockTestEventListener" />
   </list>
 
+  <!-- DbAccessTestExtensionIntegrationTest を動作させるためのコンポーネント -->
   <component name="connectionFactory"
-             class="nablarch.test.junit5.extension.db.MockConnectionFactory" />
+             class="nablarch.test.junit5.extension.db.MockConnectionFactory"
+             autowireType="None" />
   <component name="transactionFactory"
-             class="nablarch.test.junit5.extension.db.MockTransactionFactory" />
+             class="nablarch.test.junit5.extension.db.MockTransactionFactory"
+             autowireType="None" />
+
+  <!-- SimpleRestTestExtensionIntegrationTest を動作させるためのコンポーネント -->
+  <component name="httpServerFactory"
+             class="nablarch.test.junit5.extension.http.MockHttpServerFactory"
+             autowireType="None" />
+  <component name="restTestConfiguration"
+             class="nablarch.test.core.http.RestTestConfiguration"
+             autowireType="None" />
+  <component name="webFrontController"
+             class="nablarch.fw.web.servlet.WebFrontController"
+             autowireType="None" />
 </component-configuration>

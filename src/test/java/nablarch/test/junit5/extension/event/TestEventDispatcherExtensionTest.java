@@ -9,14 +9,21 @@ import nablarch.test.core.batch.BatchRequestTestSupport;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.event.TestEventListener;
 import nablarch.test.junit5.extension.NablarchTest;
+import org.apache.activemq.broker.TransportStatusDetector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -139,14 +146,17 @@ class TestEventDispatcherExtensionTest {
     @Test
     void interceptTestMethodを実行すると_TestNameのRuleがエミュレートされ_本来のテストもコールされることをテスト() throws Throwable {
         new Expectations() {{
-            mockExtensionContext.getDisplayName(); result = "テスト表示名";
-            mockExtensionContext.getRequiredTestClass(); result = TestEventDispatcherExtensionTest.class;
+            mockExtensionContext.getRequiredTestMethod();
+            result = TestEventDispatcherExtensionTest.class.getDeclaredMethod("testForMock");
+
+            mockExtensionContext.getRequiredTestClass();
+            result = TestEventDispatcherExtensionTest.class;
         }};
 
         sut.postProcessTestInstance(this, null);
         sut.interceptTestMethod(mockInvocation, null, mockExtensionContext);
 
-        assertThat(publicDispatcher.testName.getMethodName(), is("テスト表示名"));
+        assertThat(publicDispatcher.testName.getMethodName(), is("testForMock"));
 
         new Verifications() {{
             mockInvocation.proceed(); times = 1;
@@ -170,6 +180,57 @@ class TestEventDispatcherExtensionTest {
         NablarchTest annotation = sut.findAnnotation(new TemporaryClass(), NablarchTest.class);
 
         assertThat(annotation, is(nullValue()));
+    }
+
+    @Test
+    void emulateRuleでJUnit4のRuleをエミュレートできることをテスト(
+            @Mocked Invocation<Void> mockInvocation,
+            @Mocked ReflectiveInvocationContext<Method> mockInvocationContext,
+            @Mocked ExtensionContext mockExtensionContext) throws Throwable {
+
+        Method mockTestMethod = TestEventDispatcherExtensionTest.class.getDeclaredMethod("testForMock");
+        new Expectations() {{
+            mockExtensionContext.getRequiredTestClass(); result = TestEventDispatcherExtensionTest.class;
+            mockExtensionContext.getRequiredTestMethod(); result = mockTestMethod;
+        }};
+
+        MockRule mockRule = new MockRule();
+
+        sut.emulateRule(mockRule, mockInvocation, mockInvocationContext, mockExtensionContext);
+
+        assertThat(mockRule.description.getTestClass(), is(equalTo(mockExtensionContext.getRequiredTestClass())));
+        assertThat(mockRule.description.getDisplayName(),
+                is(String.format("%s(%s)",
+                        mockExtensionContext.getRequiredTestMethod().getName(),
+                        mockExtensionContext.getRequiredTestClass().getName())));
+        assertThat(mockRule.description.getMethodName(), is(mockExtensionContext.getRequiredTestMethod().getName()));
+
+        new Verifications() {{
+            mockInvocation.proceed(); times = 1;
+        }};
+    }
+
+    /**
+     * Method オブジェクトを取得するために定義した空メソッド。
+     * 実行して使用することはない。
+     */
+    private void testForMock() {
+        // noop
+    }
+
+    public static class MockRule implements TestRule {
+        Description description;
+
+        @Override
+        public Statement apply(Statement base, Description description) {
+            this.description = description;
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    base.evaluate();
+                }
+            };
+        }
     }
 
     public static class MockTestEventListener implements TestEventListener {
