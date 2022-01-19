@@ -13,6 +13,7 @@ import org.junit.platform.commons.util.ReflectionUtils;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -117,5 +118,16 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
     @Override
     public void afterAll(ExtensionContext context) {
         TestEventDispatcher.dispatchEventOfAfterTestClass();
+    }
+
+    /**
+     * 指定されたテストインスタンスのクラスに設定されたアノテーションを取得する。
+     * @param testInstance テストインスタンス(null不可)
+     * @param annotationClass 取得するアノテーションの型
+     * @param <A> アノテーションの型
+     * @return テストクラスに設定されたアノテーション
+     */
+    protected <A extends Annotation> A findAnnotation(Object testInstance, Class<A> annotationClass) {
+        return testInstance.getClass().getAnnotation(annotationClass);
     }
 }

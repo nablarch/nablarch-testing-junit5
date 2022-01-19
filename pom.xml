@@ -76,8 +76,17 @@
 
     <dependency>
       <groupId>com.nablarch.framework</groupId>
+      <artifactId>nablarch-core-dataformat</artifactId>
+      <scope>compile</scope>
+      <!-- BasicHttpRequestTestExtension を使う場合にのみ必要 -->
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>com.nablarch.framework</groupId>
       <artifactId>nablarch-testing-rest</artifactId>
       <scope>compile</scope>
+      <!-- RestTestExtension, SimpleRestTestExtension を使う場合のみ必要 -->
       <optional>true</optional>
     </dependency>
 

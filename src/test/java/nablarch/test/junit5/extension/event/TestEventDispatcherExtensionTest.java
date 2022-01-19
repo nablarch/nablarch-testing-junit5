@@ -8,6 +8,7 @@ import nablarch.test.RepositoryInitializer;
 import nablarch.test.core.batch.BatchRequestTestSupport;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.event.TestEventListener;
+import nablarch.test.junit5.extension.NablarchTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -150,6 +151,25 @@ class TestEventDispatcherExtensionTest {
         new Verifications() {{
             mockInvocation.proceed(); times = 1;
         }};
+    }
+
+    @Test
+    void findAnnotationのテスト_指定したアノテーションが見つかる場合() {
+        @NablarchTest
+        class TemporaryClass {}
+
+        NablarchTest annotation = sut.findAnnotation(new TemporaryClass(), NablarchTest.class);
+
+        assertThat(annotation, is(instanceOf(NablarchTest.class)));
+    }
+
+    @Test
+    void findAnnotationのテスト_指定したアノテーションが見つからない場合はnullを返す() {
+        class TemporaryClass {}
+
+        NablarchTest annotation = sut.findAnnotation(new TemporaryClass(), NablarchTest.class);
+
+        assertThat(annotation, is(nullValue()));
     }
 
     public static class MockTestEventListener implements TestEventListener {
