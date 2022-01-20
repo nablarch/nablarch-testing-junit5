@@ -7,7 +7,6 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
-import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.junit.platform.commons.util.ReflectionUtils;
@@ -30,10 +29,9 @@ import java.util.function.Predicate;
  * <p>
  * 各 Extension はこのクラスを継承して作成することで、共通する部分の処理を省略できる。
  * </p>
- * @param <S> インスタンスを生成するサポートクラスの型
  * @author Tanaka Tomoyuki
  */
-public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher> implements
+public abstract class TestEventDispatcherExtension implements
         TestInstancePostProcessor,
         BeforeAllCallback,
         BeforeEachCallback,
@@ -44,7 +42,7 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
     /**
      * Extension が生成しテストクラスにインジェクションする、サポートクラスのインスタンス。
      */
-    protected S support;
+    protected TestEventDispatcher support;
 
     @Override
     public void postProcessTestInstance(final Object testInstance, ExtensionContext context) throws Exception {
@@ -74,7 +72,7 @@ public abstract class TestEventDispatcherExtension<S extends TestEventDispatcher
      * @param context コンテキスト
      * @return サポートクラスのインスタンス
      */
-    protected abstract S createSupport(final Object testInstance, ExtensionContext context);
+    protected abstract TestEventDispatcher createSupport(final Object testInstance, ExtensionContext context);
 
     /**
      * 指定されたフィールドが、サポートクラスのインスタンスをインジェクションする対象となるか判定するための

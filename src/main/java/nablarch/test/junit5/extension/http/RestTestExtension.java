@@ -1,8 +1,6 @@
 package nablarch.test.junit5.extension.http;
 
 import nablarch.test.core.http.RestTestSupport;
-import nablarch.test.core.http.SimpleRestTestSupport;
-import nablarch.test.junit5.extension.event.TestEventDispatcherExtension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
@@ -10,17 +8,15 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  * @author Tanaka Tomoyuki
  */
 public class RestTestExtension extends SimpleRestTestExtension {
-    private RestTestSupport support;
 
     @Override
     protected RestTestSupport createSupport(Object testInstance, ExtensionContext context) {
-        support = new RestTestSupport();
-        return support;
+        return new RestTestSupport();
     }
 
     @Override
     public void beforeEach(ExtensionContext context) {
         super.beforeEach(context);
-        support.setUpDb();
+        ((RestTestSupport) support).setUpDb();
     }
 }

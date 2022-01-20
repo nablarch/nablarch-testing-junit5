@@ -1,6 +1,7 @@
 package nablarch.test.junit5.extension.http;
 
 import nablarch.test.core.http.BasicHttpRequestTestTemplate;
+import nablarch.test.event.TestEventDispatcher;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.util.ReflectionUtils;
 
@@ -21,7 +22,7 @@ public class BasicHttpRequestTestExtensionTest {
 
         TemporaryTest temporaryTest = new TemporaryTest();
 
-        BasicHttpRequestTestTemplate support = sut.createSupport(temporaryTest, null);
+        TestEventDispatcher support = sut.createSupport(temporaryTest, null);
 
         Method getBaseUriMethod = ReflectionUtils.findMethod(BasicHttpRequestTestTemplate.class, "getBaseUri").get();
         getBaseUriMethod.setAccessible(true);

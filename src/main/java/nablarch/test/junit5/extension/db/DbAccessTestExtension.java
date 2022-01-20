@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  * {@link DbAccessTestSupport} を JUnit 5 で使用するための Extension 実装。
  * @author Tanaka Tomoyuki
  */
-public class DbAccessTestExtension extends TestEventDispatcherExtension<DbAccessTestSupport> {
+public class DbAccessTestExtension extends TestEventDispatcherExtension {
     @Override
     protected DbAccessTestSupport createSupport(Object testInstance, ExtensionContext context) {
         return new DbAccessTestSupport(testInstance.getClass());
@@ -17,12 +17,12 @@ public class DbAccessTestExtension extends TestEventDispatcherExtension<DbAccess
     @Override
     public void beforeEach(ExtensionContext context) {
         super.beforeEach(context);
-        support.beginTransactions();
+        ((DbAccessTestSupport) support).beginTransactions();
     }
 
     @Override
     public void afterEach(ExtensionContext context) {
         super.afterEach(context);
-        support.endTransactions();
+        ((DbAccessTestSupport) support).endTransactions();
     }
 }

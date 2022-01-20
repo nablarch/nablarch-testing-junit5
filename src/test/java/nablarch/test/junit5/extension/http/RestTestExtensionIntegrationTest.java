@@ -1,7 +1,6 @@
 package nablarch.test.junit5.extension.http;
 
 import nablarch.test.core.http.RestTestSupport;
-import nablarch.test.junit5.extension.batch.BatchRequestTestExtension;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
