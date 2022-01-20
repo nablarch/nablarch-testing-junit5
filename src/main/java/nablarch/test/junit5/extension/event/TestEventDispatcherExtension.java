@@ -38,6 +38,10 @@ public abstract class TestEventDispatcherExtension implements
 
     /**
      * Extension が生成しテストクラスにインジェクションする、サポートクラスのインスタンス。
+     * <p>
+     * このフィールドは、 {@link #postProcessTestInstance(Object, ExtensionContext)} が実行されたときに初期化される。
+     * 設定される値は、 {@link #createSupport(Object, ExtensionContext)} が返却したインスタンスが使用される。
+     * </p>
      */
     protected TestEventDispatcher support;
 
@@ -55,7 +59,9 @@ public abstract class TestEventDispatcherExtension implements
             Object value = field.get(testInstance);
             if (value != null) {
                 String message =
-                    String.format("The %s field of %s is already set some value.", field.getName(), testInstance.getClass().getSimpleName());
+                        String.format("The %s field of %s is already set some value.",
+                                field.getName(),
+                                testInstance.getClass().getSimpleName());
                 throw new IllegalStateException(message);
             }
 

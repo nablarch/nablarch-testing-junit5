@@ -11,6 +11,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 
+/**
+ * {@link BasicHttpRequestTestExtension}の単体テスト。
+ * @author Tanaka Tomoyuki
+ */
 public class BasicHttpRequestTestExtensionTest {
 
     final BasicHttpRequestTestExtension sut = new BasicHttpRequestTestExtension();
@@ -24,6 +28,7 @@ public class BasicHttpRequestTestExtensionTest {
 
         TestEventDispatcher support = sut.createSupport(temporaryTest, null);
 
+        // getBaseUri() は protected で外部から実行できないのでリフレクションで実行して値を確認する
         Method getBaseUriMethod = ReflectionUtils.findMethod(BasicHttpRequestTestTemplate.class, "getBaseUri").get();
         getBaseUriMethod.setAccessible(true);
         Object baseUri = getBaseUriMethod.invoke(support);
@@ -40,6 +45,7 @@ public class BasicHttpRequestTestExtensionTest {
         IllegalStateException exception =
                 assertThrows(IllegalStateException.class, () -> sut.createSupport(temporaryTest, null));
 
-        assertThat(exception.getMessage(), is(TemporaryTest.class.getName() + " is not annotated by BasicHttpRequestTest."));
+        assertThat(exception.getMessage(),
+                is(TemporaryTest.class.getName() + " is not annotated by BasicHttpRequestTest."));
     }
 }
