@@ -4,9 +4,10 @@ import nablarch.test.core.http.SimpleRestTestSupport;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.junit5.extension.event.TestEventDispatcherExtension;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+import org.junit.rules.TestRule;
 
-import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * {@link SimpleRestTestSupport} を JUnit 5 で使用するための Extension 実装。
@@ -19,15 +20,15 @@ public class SimpleRestTestExtension extends TestEventDispatcherExtension {
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) {
+    public void beforeEach(ExtensionContext context) throws Exception {
         super.beforeEach(context);
         ((SimpleRestTestSupport) support).setUp();
     }
 
     @Override
-    public void interceptTestMethod(Invocation<Void> invocation,
-                                    ReflectiveInvocationContext<Method> invocationContext,
-                                    ExtensionContext extensionContext) throws Throwable {
-        emulateRule(((SimpleRestTestSupport) support).testDescription, invocation, invocationContext, extensionContext);
+    protected List<TestRule> resolveTestRules() {
+        List<TestRule> testRules = new ArrayList<>(super.resolveTestRules());
+        testRules.add(((SimpleRestTestSupport) support).testDescription);
+        return testRules;
     }
 }

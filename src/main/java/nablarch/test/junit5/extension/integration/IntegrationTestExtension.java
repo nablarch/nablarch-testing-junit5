@@ -16,7 +16,7 @@ public class IntegrationTestExtension extends TestEventDispatcherExtension {
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) {
+    public void beforeEach(ExtensionContext context) throws Exception {
         super.beforeEach(context);
         ((IntegrationTestSupport) support).setUpDbBeforeTestMethod();
     }

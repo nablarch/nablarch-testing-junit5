@@ -30,4 +30,8 @@
   <component name="webFrontController"
              class="nablarch.fw.web.servlet.WebFrontController"
              autowireType="None" />
+
+  <!-- RestTestExtensionIntegrationTest を動作させるためのコンポーネント -->
+  <component name="testDataParser"
+             class="nablarch.test.junit5.extension.http.MockTestDataParser" />
 </component-configuration>

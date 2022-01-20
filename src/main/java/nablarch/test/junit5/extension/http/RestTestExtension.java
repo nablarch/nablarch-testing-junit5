@@ -15,7 +15,7 @@ public class RestTestExtension extends SimpleRestTestExtension {
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) {
+    public void beforeEach(ExtensionContext context) throws Exception {
         super.beforeEach(context);
         ((RestTestSupport) support).setUpDb();
     }

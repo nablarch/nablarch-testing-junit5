@@ -2,9 +2,7 @@ package nablarch.test.junit5.extension.event;
 
 import nablarch.test.event.TestEventDispatcher;
 import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
@@ -17,6 +15,7 @@ import org.junit.runners.model.Statement;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -34,9 +33,7 @@ import java.util.function.Predicate;
 public abstract class TestEventDispatcherExtension implements
         TestInstancePostProcessor,
         BeforeAllCallback,
-        BeforeEachCallback,
         AfterAllCallback,
-        AfterEachCallback,
         InvocationInterceptor {
 
     /**
@@ -89,18 +86,81 @@ public abstract class TestEventDispatcherExtension implements
         TestEventDispatcher.dispatchEventOfBeforeTestClassAndBeforeSuit();
     }
 
-    @Override
-    public void beforeEach(ExtensionContext context) {
+    /**
+     * テストメソッドの前処理を実行する。
+     * @param context コンテキスト
+     * @throws Exception 例外がスローされた場合
+     */
+    protected void beforeEach(ExtensionContext context) throws Exception {
         support.dispatchEventOfBeforeTestMethod();
     }
 
     @Override
     public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-        emulateRule(support.testName, invocation, invocationContext, extensionContext);
+        Statement base = new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                beforeEach(extensionContext);
+                try {
+                    invocation.proceed();
+                } finally {
+                    afterEach(extensionContext);
+                }
+            }
+        };
+
+        Description description = convert(extensionContext);
+
+        List<TestRule> testRules = resolveTestRules();
+        Statement statement = base;
+        for (TestRule testRule : testRules) {
+            statement = testRule.apply(statement, description);
+        }
+
+        statement.evaluate();
     }
 
-    @Override
-    public void afterEach(ExtensionContext context) {
+    /**
+     * {@link ExtensionContext}(JUnit5) の情報を {@link Description}(JUnit4) に詰め替える。
+     * @param extensionContext {@link ExtensionContext}
+     * @return {code extensionContext} の情報をもとに構築された {@link Description}
+     */
+    private Description convert(ExtensionContext extensionContext) {
+        Class<?> testClass = extensionContext.getRequiredTestClass();
+        String testName = extensionContext.getRequiredTestMethod().getName();
+        return Description.createTestDescription(testClass, testName);
+    }
+
+    /**
+     * テストに対して適用する JUnit 4 の {@link TestRule} のリストを取得する。
+     * <p>
+     * JUnit 4 時代に作成した独自のサポートクラスを移植する場合は、
+     * このメソッドをオーバーライドしてサポートクラスで宣言したルールインスタンスを
+     * リストにして返却するように実装する。<br>
+     * オーバーライドした場合は、親クラスが返したリストに追加する形でルールを追加すること。
+     * 以下に実装例を示す。
+     * </p>
+     * <pre>{@code
+     * public List<TestRule> resolveTestRules() {
+     *     // 親の resolveTestRules() が返したリストをベースにする
+     *     List<TestRule> testRules = new ArrayList<>(super.resolveTestRules());
+     *     // 独自の TestRule を追加する
+     *     testRules.add(((YourSupport)support).yourTestRule);
+     *     return testRules;
+     * }
+     * }</pre>
+     * @return テストに適用したい JUnit 4 の {@link TestRule} のリスト
+     */
+    protected List<TestRule> resolveTestRules() {
+        return Collections.singletonList(support.testName);
+    }
+
+    /**
+     * テストメソッドの後処理を実行する。
+     * @param context コンテキスト
+     * @throws Exception 例外がスローされた場合
+     */
+    protected void afterEach(ExtensionContext context) throws Exception {
         support.dispatchEventOfAfterTestMethod();
     }
 
@@ -118,36 +178,5 @@ public abstract class TestEventDispatcherExtension implements
      */
     protected <A extends Annotation> A findAnnotation(Object testInstance, Class<A> annotationClass) {
         return testInstance.getClass().getAnnotation(annotationClass);
-    }
-
-    /**
-     * JUnit4 の {@link TestRule} の動作を JUnit 5 環境上で再現する。
-     * <p>
-     * 引数に渡す {@link Invocation}, {@link ReflectiveInvocationContext}, {@link ExtensionContext} は、
-     * {@link #interceptTestMethod(Invocation, ReflectiveInvocationContext, ExtensionContext)} で
-     * 受け取った引数をそのまま連携する。
-     * </p>
-     *
-     * @param testRule 再現対象の {@link TestRule}
-     * @param invocation {@link Invocation}
-     * @param invocationContext {@link ReflectiveInvocationContext}
-     * @param extensionContext {@link ExtensionContext}
-     */
-    protected void emulateRule(TestRule testRule,
-                               Invocation<Void> invocation,
-                               ReflectiveInvocationContext<Method> invocationContext,
-                               ExtensionContext extensionContext) throws Throwable {
-        Class<?> testClass = extensionContext.getRequiredTestClass();
-        String testName = extensionContext.getRequiredTestMethod().getName();
-        Description description = Description.createTestDescription(testClass, testName);
-
-        Statement statement = testRule.apply(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                invocation.proceed();
-            }
-        }, description);
-
-        statement.evaluate();
     }
 }

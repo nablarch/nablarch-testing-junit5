@@ -15,13 +15,13 @@ public class DbAccessTestExtension extends TestEventDispatcherExtension {
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) {
+    public void beforeEach(ExtensionContext context) throws Exception {
         super.beforeEach(context);
         ((DbAccessTestSupport) support).beginTransactions();
     }
 
     @Override
-    public void afterEach(ExtensionContext context) {
+    public void afterEach(ExtensionContext context) throws Exception {
         super.afterEach(context);
         ((DbAccessTestSupport) support).endTransactions();
     }

@@ -41,7 +41,7 @@ public class SimpleRestTestExtensionTest {
     }
 
     @Test
-    void interceptTestMethodを実行すると_testDescriptionのRuleがエミュレートされ_次のテストが実行されることをテスト() throws Throwable {
+    void interceptTestMethodを実行すると_testDescriptionとtestNameのRuleがエミュレートされ_次のテストが実行されることをテスト() throws Throwable {
         new Expectations() {{
             mockExtensionContext.getRequiredTestClass();
             result = SimpleRestTestExtensionTest.class;
@@ -56,6 +56,9 @@ public class SimpleRestTestExtensionTest {
 
         sut.interceptTestMethod(mockInvocation, null, mockExtensionContext);
 
+        // TestName
+        assertThat(support.testName.getMethodName(), is("testForMock"));
+        // TestDescription
         assertThat(support.testDescription.getTestClass(), is(equalTo(SimpleRestTestExtensionTest.class)));
         assertThat(support.testDescription.getMethodName(), is("testForMock"));
 
