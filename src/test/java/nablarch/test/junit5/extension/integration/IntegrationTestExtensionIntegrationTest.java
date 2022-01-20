@@ -1,5 +1,8 @@
 package nablarch.test.junit5.extension.integration;
 
+import mockit.Mocked;
+import mockit.Verifications;
+import nablarch.test.core.db.DbAccessTestSupport;
 import nablarch.test.core.integration.IntegrationTestSupport;
 import org.junit.jupiter.api.Test;
 
@@ -14,10 +17,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 @IntegrationTest
 class IntegrationTestExtensionIntegrationTest {
+    @Mocked
+    DbAccessTestSupport mockDbAccessTestSupport;
+
     IntegrationTestSupport support;
 
     @Test
     void IntegrationTestExtensionが動作することをテスト() {
         assertThat(support, is(instanceOf(IntegrationTestSupport.class)));
+
+        new Verifications() {{
+            mockDbAccessTestSupport.setUpDb("setUpDb"); times = 1;
+        }};
     }
 }
