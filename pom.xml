@@ -28,33 +28,6 @@
     <jmockit.version>1.49</jmockit.version>
   </properties>
 
-  <!-- <profiles>
-    <profile>
-      <id>java8</id>
-      <properties>
-        <ecj.version>4.6.1</ecj.version>
-      </properties>
-    </profile>
-    <profile>
-      <id>java11</id>
-      <properties>
-        <ecj.version>4.6.1</ecj.version>
-      </properties>
-      <dependencies>
-        <dependency>
-          <groupId>javax.activation</groupId>
-          <artifactId>javax.activation-api</artifactId>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>com.sun.activation</groupId>
-          <artifactId>javax.activation</artifactId>
-          <scope>test</scope>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles> -->
-  
   <dependencyManagement>
     <dependencies>
       <dependency>
