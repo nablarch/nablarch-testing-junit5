@@ -1,5 +1,6 @@
 package nablarch.test.junit5.extension.http;
 
+import nablarch.core.util.annotation.Published;
 import nablarch.test.core.http.RestTestSupport;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  * {@link RestTestSupport} を JUnit 5 で使用するための Extension 実装。
  * @author Tanaka Tomoyuki
  */
+@Published
 public class RestTestExtension extends SimpleRestTestExtension {
 
     @Override

@@ -1,5 +1,6 @@
 package nablarch.test.junit5.extension.event;
 
+import nablarch.core.util.annotation.Published;
 import nablarch.test.event.TestEventDispatcher;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -30,6 +31,7 @@ import java.util.function.Predicate;
  * </p>
  * @author Tanaka Tomoyuki
  */
+@Published(tag = "architect")
 public abstract class TestEventDispatcherExtension implements
         TestInstancePostProcessor,
         BeforeAllCallback,
