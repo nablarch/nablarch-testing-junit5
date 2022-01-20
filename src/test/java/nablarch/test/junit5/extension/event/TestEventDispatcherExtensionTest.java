@@ -13,9 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
 
 import java.lang.reflect.Field;
 
@@ -140,7 +137,7 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void interceptTestMethodを実行すると_TestNameのRuleがエミュレートされ_本来のテストもコールされることをテスト() throws Throwable {
+    void interceptTestMethodを実行すると_TestRuleのエミュレート_beforeEach_afterEachの実行_本来のテストの実行が行われることをテスト() throws Throwable {
         new Expectations() {{
             mockExtensionContext.getRequiredTestMethod();
             result = TestEventDispatcherExtensionTest.class.getDeclaredMethod("testForMock");
@@ -150,8 +147,15 @@ class TestEventDispatcherExtensionTest {
         }};
 
         sut.postProcessTestInstance(this, null);
+
+        MockTestEventListener listener = SystemRepository.get("mockTestEventListener");
+        assertThat(listener.beforeTestMethodInvokedCount, is(0));
+        assertThat(listener.afterTestMethodInvokedCount, is(0));
+
         sut.interceptTestMethod(mockInvocation, null, mockExtensionContext);
 
+        assertThat(listener.beforeTestMethodInvokedCount, is(1));
+        assertThat(listener.afterTestMethodInvokedCount, is(1));
         assertThat(publicDispatcher.testName.getMethodName(), is("testForMock"));
 
         new Verifications() {{
@@ -184,21 +188,6 @@ class TestEventDispatcherExtensionTest {
      */
     private void testForMock() {
         // noop
-    }
-
-    public static class MockRule implements TestRule {
-        Description description;
-
-        @Override
-        public Statement apply(Statement base, Description description) {
-            this.description = description;
-            return new Statement() {
-                @Override
-                public void evaluate() throws Throwable {
-                    base.evaluate();
-                }
-            };
-        }
     }
 
     public static class MockTestEventListener implements TestEventListener {
