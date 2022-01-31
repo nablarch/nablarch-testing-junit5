@@ -1,12 +1,10 @@
 package nablarch.test.junit5.extension.http;
 
 import mockit.Expectations;
-import mockit.Mocked;
-import mockit.Verifications;
 import nablarch.test.core.http.SimpleRestTestSupport;
+import nablarch.test.junit5.extension.MockExtensionContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -19,52 +17,26 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class SimpleRestTestExtensionTest {
     SimpleRestTestSupport support;
 
-    @Mocked
-    Invocation<Void> mockInvocation;
-    @Mocked
-    ExtensionContext mockExtensionContext;
-
     @Test
-    void beforeEachを実行すると_SimpleRestTestSupportとTestEventDispatcherのテスト前処理が実行されることをテスト(
-            @Mocked SimpleRestTestSupport mockSupport) throws Exception {
-
+    void beforeEachを実行すると_TestRuleが再現され_SimpleRestTestSupportとTestEventDispatcherのテスト前処理が実行されることをテスト() throws Exception {
         SimpleRestTestExtension sut = new SimpleRestTestExtension();
 
         sut.postProcessTestInstance(this, null);
-
-        sut.beforeEach(null);
-
-        new Verifications() {{
-            mockSupport.setUp(); times = 1;
-            mockSupport.dispatchEventOfBeforeTestMethod(); times = 1;
-        }};
-    }
-
-    @Test
-    void interceptTestMethodを実行すると_testDescriptionとtestNameのRuleがエミュレートされ_次のテストが実行されることをテスト() throws Throwable {
-        new Expectations() {{
-            mockExtensionContext.getRequiredTestClass();
-            result = SimpleRestTestExtensionTest.class;
-
-            mockExtensionContext.getRequiredTestMethod();
-            result = SimpleRestTestExtensionTest.class.getDeclaredMethod("testForMock");
+        new Expectations(support) {{
+            support.setUp(); times = 1;
+            support.dispatchEventOfBeforeTestMethod(); times = 1;
         }};
 
-        SimpleRestTestExtension sut = new SimpleRestTestExtension();
+        ExtensionContext mockContext = new MockExtensionContext(SimpleRestTestExtensionTest.class,
+                SimpleRestTestExtensionTest.class.getDeclaredMethod("testForMock"));
 
-        sut.postProcessTestInstance(this, null);
-
-        sut.interceptTestMethod(mockInvocation, null, mockExtensionContext);
+        sut.beforeEach(mockContext);
 
         // TestName
         assertThat(support.testName.getMethodName(), is("testForMock"));
         // TestDescription
         assertThat(support.testDescription.getTestClass(), is(equalTo(SimpleRestTestExtensionTest.class)));
         assertThat(support.testDescription.getMethodName(), is("testForMock"));
-
-        new Verifications() {{
-            mockInvocation.proceed(); times = 1;
-        }};
     }
 
     /**
