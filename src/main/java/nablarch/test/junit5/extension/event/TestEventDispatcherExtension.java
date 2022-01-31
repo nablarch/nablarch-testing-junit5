@@ -3,10 +3,10 @@ package nablarch.test.junit5.extension.event;
 import nablarch.core.util.annotation.Published;
 import nablarch.test.event.TestEventDispatcher;
 import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.InvocationInterceptor;
-import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.junit.platform.commons.util.ReflectionUtils;
 import org.junit.rules.TestRule;
@@ -15,7 +15,6 @@ import org.junit.runners.model.Statement;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -36,7 +35,16 @@ public abstract class TestEventDispatcherExtension implements
         TestInstancePostProcessor,
         BeforeAllCallback,
         AfterAllCallback,
-        InvocationInterceptor {
+        BeforeEachCallback,
+        AfterEachCallback {
+
+    /**
+     * 何も処理を行わない{@link Statement}。
+     */
+    private static final Statement NOOP_STATEMENT = new Statement() {
+        @Override
+        public void evaluate() {}
+    };
 
     /**
      * Extension が生成しテストクラスにインジェクションする、サポートクラスのインスタンス。
@@ -99,33 +107,30 @@ public abstract class TestEventDispatcherExtension implements
      * @param context コンテキスト
      * @throws Exception 例外がスローされた場合
      */
-    protected void beforeEach(ExtensionContext context) throws Exception {
+    @Override
+    public void beforeEach(ExtensionContext context) throws Exception {
+        emulateTestRules(context);
         support.dispatchEventOfBeforeTestMethod();
     }
 
-    @Override
-    public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-        Statement base = new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                beforeEach(extensionContext);
-                try {
-                    invocation.proceed();
-                } finally {
-                    afterEach(extensionContext);
-                }
-            }
-        };
-
-        Description description = convert(extensionContext);
+    /**
+     * JUnit4の{@link TestRule}を再現する。
+     * @param context コンテキスト
+     */
+    private void emulateTestRules(ExtensionContext context) {
+        Description description = convert(context);
 
         List<TestRule> testRules = resolveTestRules();
-        Statement statement = base;
+        Statement statement = NOOP_STATEMENT;
         for (TestRule testRule : testRules) {
             statement = testRule.apply(statement, description);
         }
 
-        statement.evaluate();
+        try {
+            statement.evaluate();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -168,7 +173,8 @@ public abstract class TestEventDispatcherExtension implements
      * @param context コンテキスト
      * @throws Exception 例外がスローされた場合
      */
-    protected void afterEach(ExtensionContext context) throws Exception {
+    @Override
+    public void afterEach(ExtensionContext context) throws Exception {
         support.dispatchEventOfAfterTestMethod();
     }
 

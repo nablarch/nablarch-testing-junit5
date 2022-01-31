@@ -1,20 +1,22 @@
 package nablarch.test.junit5.extension.event;
 
-import mockit.Expectations;
-import mockit.Mocked;
-import mockit.Verifications;
 import nablarch.core.repository.SystemRepository;
 import nablarch.test.RepositoryInitializer;
 import nablarch.test.core.batch.BatchRequestTestSupport;
 import nablarch.test.event.TestEventDispatcher;
 import nablarch.test.event.TestEventListener;
+import nablarch.test.junit5.extension.MockExtensionContext;
 import nablarch.test.junit5.extension.NablarchTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -35,11 +37,6 @@ class TestEventDispatcherExtensionTest {
     protected TestEventDispatcher protectedDispatcher;
     TestEventDispatcher packagePrivateDispatcher;
     private TestEventDispatcher privateDispatcher;
-
-    @Mocked
-    Invocation<Void> mockInvocation;
-    @Mocked
-    ExtensionContext mockExtensionContext;
 
     @BeforeEach
     void beforeAll() {
@@ -105,9 +102,40 @@ class TestEventDispatcherExtensionTest {
 
         assertThat(listener.beforeTestMethodInvokedCount, is(0));
 
-        sut.beforeEach(null);
+        sut.beforeEach(MockExtensionContext.any());
 
         assertThat(listener.beforeTestMethodInvokedCount, is(1));
+    }
+
+    @Test
+    void beforeEachを実行すると_TestRuleのエミュレートが行われることをテスト() throws Throwable {
+        sut.postProcessTestInstance(this, null);
+
+        ExtensionContext mockContext = new MockExtensionContext(TestEventDispatcherExtensionTest.class,
+                TestEventDispatcherExtensionTest.class.getDeclaredMethod("testForMock"));
+
+        sut.beforeEach(mockContext);
+
+        assertThat(publicDispatcher.testName.getMethodName(), is("testForMock"));
+    }
+
+    @Test
+    void TestRuleエミュレート時に例外が発生した場合は_発生した例外を原因として持つ実行時例外がスローされること() throws Throwable {
+        Exception exception = new Exception("test");
+
+        TestEventDispatcherExtension sut = new MockTestEventDispatcherExtension() {
+            @Override
+            protected List<TestRule> resolveTestRules() {
+                return Collections.singletonList(new ErrorTestRule(exception));
+            }
+        };
+
+        sut.postProcessTestInstance(this, null);
+
+        final RuntimeException e = assertThrows(RuntimeException.class,
+                () -> sut.beforeEach(MockExtensionContext.any()));
+
+        assertThat(e.getCause(), is(exception));
     }
 
     @Test
@@ -137,33 +165,6 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void interceptTestMethodを実行すると_TestRuleのエミュレート_beforeEach_afterEachの実行_本来のテストの実行が行われることをテスト() throws Throwable {
-        new Expectations() {{
-            mockExtensionContext.getRequiredTestMethod();
-            result = TestEventDispatcherExtensionTest.class.getDeclaredMethod("testForMock");
-
-            mockExtensionContext.getRequiredTestClass();
-            result = TestEventDispatcherExtensionTest.class;
-        }};
-
-        sut.postProcessTestInstance(this, null);
-
-        MockTestEventListener listener = SystemRepository.get("mockTestEventListener");
-        assertThat(listener.beforeTestMethodInvokedCount, is(0));
-        assertThat(listener.afterTestMethodInvokedCount, is(0));
-
-        sut.interceptTestMethod(mockInvocation, null, mockExtensionContext);
-
-        assertThat(listener.beforeTestMethodInvokedCount, is(1));
-        assertThat(listener.afterTestMethodInvokedCount, is(1));
-        assertThat(publicDispatcher.testName.getMethodName(), is("testForMock"));
-
-        new Verifications() {{
-            mockInvocation.proceed(); times = 1;
-        }};
-    }
-
-    @Test
     void findAnnotationのテスト_指定したアノテーションが見つかる場合() {
         @NablarchTest
         class TemporaryClass {}
@@ -188,6 +189,27 @@ class TestEventDispatcherExtensionTest {
      */
     private void testForMock() {
         // noop
+    }
+
+    /**
+     * 実行時にコンストラクタで指定された例外をスローする {@link Statement}.
+     */
+    public static class ErrorTestRule implements TestRule {
+        private final Throwable exception;
+
+        public ErrorTestRule(Throwable exception) {
+            this.exception = exception;
+        }
+
+        @Override
+        public Statement apply(Statement base, Description description) {
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    throw exception;
+                }
+            };
+        }
     }
 
     public static class MockTestEventListener implements TestEventListener {
