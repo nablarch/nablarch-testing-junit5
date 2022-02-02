@@ -13,7 +13,7 @@ public class RestTestExtension extends SimpleRestTestExtension {
 
     @Override
     protected RestTestSupport createSupport(Object testInstance, ExtensionContext context) {
-        return new RestTestSupport();
+        return new RestTestSupport(testInstance.getClass());
     }
 
     @Override
