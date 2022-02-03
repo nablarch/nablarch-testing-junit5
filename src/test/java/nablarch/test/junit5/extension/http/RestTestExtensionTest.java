@@ -1,13 +1,18 @@
 package nablarch.test.junit5.extension.http;
 
 import mockit.Expectations;
+import mockit.Mocked;
+import mockit.Verifications;
 import nablarch.test.core.http.RestTestSupport;
 import nablarch.test.junit5.extension.MockExtensionContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
@@ -36,6 +41,16 @@ public class RestTestExtensionTest {
 
         assertThat(support.testName.getMethodName(), is("testForMock"));
         assertThat(support.testDescription.getTestClass(), is(equalTo(RestTestExtensionTest.class)));
+    }
+
+    @Test
+    void RestTestSupportのインスタンス生成時にテストクラスが渡されていることをテスト(@Mocked RestTestSupport mockSupport) throws Exception {
+        RestTestSupport created = sut.createSupport(this, null);
+
+        new Verifications() {{
+            List<RestTestSupport> captured = withCapture(new RestTestSupport(RestTestExtensionTest.class)); times = 1;
+            assertThat(captured.get(0), is(sameInstance(created)));
+        }};
     }
 
     /**
