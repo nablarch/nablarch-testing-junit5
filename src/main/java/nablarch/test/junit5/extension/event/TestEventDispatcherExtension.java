@@ -43,7 +43,9 @@ public abstract class TestEventDispatcherExtension implements
      */
     private static final Statement NOOP_STATEMENT = new Statement() {
         @Override
-        public void evaluate() {}
+        public void evaluate() {
+            // TestRule の再現を行うときのベースとなる Statement になるため処理は何も行わない
+        }
     };
 
     /**
