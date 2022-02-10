@@ -9,7 +9,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * {@link DbAccessTestExtension} を適用するためのメタアノテーション。
+ * {@link DbAccessTestExtension} を適用するための合成アノテーション。
  * @author Tanaka Tomoyuki
  */
 @Published
