@@ -9,7 +9,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * {@link HttpRequestTestExtension} を適用するためのメタアノテーション。
+ * {@link HttpRequestTestExtension} を適用するための合成アノテーション。
  * @author Tanaka Tomoyuki
  */
 @Published
