@@ -6,7 +6,7 @@
 
   <groupId>com.nablarch.framework</groupId>
   <artifactId>nablarch-testing-junit5</artifactId>
-  <version>5-NEXT-SNAPSHOT</version>
+  <version>6-NEXT-SNAPSHOT</version>
 
   <scm>
     <connection>scm:git:git://github.com/nablarch/${project.artifactId}.git</connection>
@@ -17,13 +17,11 @@
   <parent>
     <groupId>com.nablarch</groupId>
     <artifactId>nablarch-parent</artifactId>
-    <version>5-NEXT-SNAPSHOT</version>
+    <version>6-NEXT-SNAPSHOT</version>
     <relativePath/>
   </parent>
 
   <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
     <junit.additionalArgLine>-javaagent:${settings.localRepository}/org/jmockit/jmockit/${jmockit.version}/jmockit-${jmockit.version}.jar</junit.additionalArgLine>
     <jmockit.version>1.49</jmockit.version>
   </properties>
@@ -82,9 +80,8 @@
 
     <!-- nablarch-testing-rest のクラスをテストするときに必要 -->
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>servlet-api</artifactId>
-      <version>2.5</version>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
       <scope>test</scope>
     </dependency>
 
