@@ -1,14 +1,16 @@
 package nablarch.test.junit5.extension.http;
 
-import mockit.Expectations;
 import nablarch.test.core.http.SimpleRestTestSupport;
 import nablarch.test.junit5.extension.MockExtensionContext;
+import nablarch.test.support.reflection.ReflectionUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 /**
  * {@link SimpleRestTestExtension}の単体テスト。
@@ -22,15 +24,18 @@ public class SimpleRestTestExtensionTest {
         SimpleRestTestExtension sut = new SimpleRestTestExtension();
 
         sut.postProcessTestInstance(this, null);
-        new Expectations(support) {{
-            support.setUp(); times = 1;
-            support.dispatchEventOfBeforeTestMethod(); times = 1;
-        }};
+
+        final SimpleRestTestSupport originalSupport = ReflectionUtil.getFieldValue(sut, "support");
+        final SimpleRestTestSupport spiedSupport = spy(originalSupport);
+        ReflectionUtil.setFieldValue(sut, "support", spiedSupport);
 
         ExtensionContext mockContext = new MockExtensionContext(SimpleRestTestExtensionTest.class,
                 SimpleRestTestExtensionTest.class.getDeclaredMethod("testForMock"));
 
         sut.beforeEach(mockContext);
+
+        verify(spiedSupport).setUp();
+        verify(spiedSupport).dispatchEventOfBeforeTestMethod();
 
         // TestName
         assertThat(support.testName.getMethodName(), is("testForMock"));
