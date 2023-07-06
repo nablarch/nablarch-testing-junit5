@@ -56,6 +56,6 @@ public class DbAccessTestExtension extends TestEventDispatcherExtension {
     }
 
     private String now() {
-        return LocalDate.now().format(DateTimeFormatter.ISO_DATE_TIME);
+        return LocalDate.now().toString();
     }
 }
