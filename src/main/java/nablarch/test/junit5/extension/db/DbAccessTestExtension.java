@@ -13,18 +13,42 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public class DbAccessTestExtension extends TestEventDispatcherExtension {
     @Override
     protected DbAccessTestSupport createSupport(Object testInstance, ExtensionContext context) {
-        return new DbAccessTestSupport(testInstance.getClass());
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!! createSupport start...");
+        try {
+            return new DbAccessTestSupport(testInstance.getClass());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!! createSupport end!!");
+        }
     }
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
-        super.beforeEach(context);
-        ((DbAccessTestSupport) support).beginTransactions();
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!! beforeEach start...");
+        try {
+            super.beforeEach(context);
+            ((DbAccessTestSupport) support).beginTransactions();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!! beforeEach end!!");
+        }
     }
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
-        super.afterEach(context);
-        ((DbAccessTestSupport) support).endTransactions();
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!! afterEach start...");
+        try {
+            super.afterEach(context);
+            ((DbAccessTestSupport) support).endTransactions();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!! afterEach end!!");
+        }
     }
 }
