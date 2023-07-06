@@ -4,8 +4,10 @@ package nablarch.test.junit5.extension.db;
 import nablarch.test.core.db.DbAccessTestSupport;
 import nablarch.test.junit5.extension.MockExtensionContext;
 import nablarch.test.support.reflection.ReflectionUtil;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -17,9 +19,11 @@ import static org.mockito.Mockito.verify;
  * {@link DbAccessTestExtension} の単体テスト。
  * @author Tanaka Tomoyuki
  */
+@TestMethodOrder(OrderAnnotation.class)
 class DbAccessTestExtensionTest {
     final DbAccessTestExtension sut = new DbAccessTestExtension();
 
+    @Order(1)
     @Test
     void beforeEachを実行すると_TestRuleが再現され_DbAccessTestSupportとTestEventDispatcherで定義されたテスト開始前の処理が実行されることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
@@ -39,6 +43,7 @@ class DbAccessTestExtensionTest {
         assertThat(spiedSupport.testName.getMethodName(), is("testForMock"));
     }
 
+    @Order(2)
     @Test
     void afterEachを実行すると_DbAccessTestSupportとTestEventDispatcherで定義されたテスト終了後の処理が実行されることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
