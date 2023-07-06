@@ -13,20 +13,20 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public class DbAccessTestExtension extends TestEventDispatcherExtension {
     @Override
     protected DbAccessTestSupport createSupport(Object testInstance, ExtensionContext context) {
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!! createSupport start...");
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!! " + Thread.currentThread().getName() + " createSupport start...");
         try {
             return new DbAccessTestSupport(testInstance.getClass());
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
         } finally {
-            System.out.println("!!!!!!!!!!!!!!!!!!!!!! createSupport end!!");
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!! " + Thread.currentThread().getName() + " createSupport end!!");
         }
     }
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!! beforeEach start...");
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!! " + Thread.currentThread().getName() + " beforeEach start...");
         try {
             super.beforeEach(context);
             ((DbAccessTestSupport) support).beginTransactions();
@@ -34,13 +34,13 @@ public class DbAccessTestExtension extends TestEventDispatcherExtension {
             e.printStackTrace();
             throw e;
         } finally {
-            System.out.println("!!!!!!!!!!!!!!!!!!!!!! beforeEach end!!");
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!! " + Thread.currentThread().getName() + " beforeEach end!!");
         }
     }
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!! afterEach start...");
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!! " + Thread.currentThread().getName() + " afterEach start...");
         try {
             super.afterEach(context);
             ((DbAccessTestSupport) support).endTransactions();
@@ -48,7 +48,7 @@ public class DbAccessTestExtension extends TestEventDispatcherExtension {
             e.printStackTrace();
             throw e;
         } finally {
-            System.out.println("!!!!!!!!!!!!!!!!!!!!!! afterEach end!!");
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!! " + Thread.currentThread().getName() + " afterEach end!!");
         }
     }
 }
