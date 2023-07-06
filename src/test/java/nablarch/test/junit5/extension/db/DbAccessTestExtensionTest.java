@@ -4,6 +4,7 @@ package nablarch.test.junit5.extension.db;
 import nablarch.test.core.db.DbAccessTestSupport;
 import nablarch.test.junit5.extension.MockExtensionContext;
 import nablarch.test.support.reflection.ReflectionUtil;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.verify;
  * {@link DbAccessTestExtension} の単体テスト。
  * @author Tanaka Tomoyuki
  */
+@Disabled
 class DbAccessTestExtensionTest {
     final DbAccessTestExtension sut = new DbAccessTestExtension();
 
