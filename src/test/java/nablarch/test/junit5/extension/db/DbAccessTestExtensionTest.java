@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
  * {@link DbAccessTestExtension} の単体テスト。
  * @author Tanaka Tomoyuki
  */
-@Disabled
 class DbAccessTestExtensionTest {
     final DbAccessTestExtension sut = new DbAccessTestExtension();
 
