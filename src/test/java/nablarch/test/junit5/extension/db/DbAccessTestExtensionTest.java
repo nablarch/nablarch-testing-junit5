@@ -20,7 +20,7 @@ class DbAccessTestExtensionTest {
     final DbAccessTestExtension sut = new DbAccessTestExtension();
 
     @Test
-    void beforeEachを実行すると_TestRuleが再現され_DbAccessTestSupportとTestEventDispatcherで定義されたテスト開始前の処理が実行されることをテスト() throws Exception {
+    void DbAccessTestSupportと同等の処理が実行されることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         final DbAccessTestSupport originalSupport = ReflectionUtil.getFieldValue(sut, "support");
@@ -31,25 +31,14 @@ class DbAccessTestExtensionTest {
                 DbAccessTestExtensionTest.class.getDeclaredMethod("testForMock"));
 
         sut.beforeEach(context);
+        sut.afterEach(context);
 
         verify(spiedSupport).beginTransactions();
         verify(spiedSupport).dispatchEventOfBeforeTestMethod();
-        
-        assertThat(spiedSupport.testName.getMethodName(), is("testForMock"));
-    }
-
-    @Test
-    void afterEachを実行すると_DbAccessTestSupportとTestEventDispatcherで定義されたテスト終了後の処理が実行されることをテスト() throws Exception {
-        sut.postProcessTestInstance(this, null);
-
-        final DbAccessTestSupport originalSupport = ReflectionUtil.getFieldValue(sut, "support");
-        final DbAccessTestSupport spiedSupport = spy(originalSupport);
-        ReflectionUtil.setFieldValue(sut, "support", spiedSupport);
-
-        sut.afterEach(null);
-        
         verify(spiedSupport).endTransactions();
         verify(spiedSupport).dispatchEventOfAfterTestMethod();
+
+        assertThat(spiedSupport.testName.getMethodName(), is("testForMock"));
     }
 
     /**
