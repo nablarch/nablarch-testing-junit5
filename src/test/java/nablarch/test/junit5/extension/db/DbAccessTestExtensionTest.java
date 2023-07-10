@@ -20,32 +20,23 @@ class DbAccessTestExtensionTest {
     final DbAccessTestExtension sut = new DbAccessTestExtension();
 
     @Test
-    void beforeEachを実行すると_TestRuleが再現され_DbAccessTestSupportとTestEventDispatcherで定義されたテスト開始前の処理が実行されることをテスト() throws Exception {
+    void DbAccessTestSupportと同等の処理が実行されることをテスト() throws Exception {
         sut.postProcessTestInstance(this, null);
 
         new Expectations(support) {{
             support.beginTransactions(); times = 1;
             support.dispatchEventOfBeforeTestMethod(); times = 1;
+            support.endTransactions(); times = 1;
+            support.dispatchEventOfAfterTestMethod(); times = 1;
         }};
 
         ExtensionContext context = new MockExtensionContext(DbAccessTestExtensionTest.class,
                 DbAccessTestExtensionTest.class.getDeclaredMethod("testForMock"));
 
         sut.beforeEach(context);
+        sut.afterEach(context);
 
         assertThat(support.testName.getMethodName(), is("testForMock"));
-    }
-
-    @Test
-    void afterEachを実行すると_DbAccessTestSupportとTestEventDispatcherで定義されたテスト終了後の処理が実行されることをテスト() throws Exception {
-        sut.postProcessTestInstance(this, null);
-
-        new Expectations(support) {{
-            support.endTransactions(); times = 1;
-            support.dispatchEventOfAfterTestMethod(); times = 1;
-        }};
-
-        sut.afterEach(null);
     }
 
     /**
