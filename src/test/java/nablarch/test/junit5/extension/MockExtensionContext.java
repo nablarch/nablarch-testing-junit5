@@ -1,6 +1,7 @@
 package nablarch.test.junit5.extension;
 
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExecutableInvoker;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestInstances;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -127,6 +128,11 @@ public class MockExtensionContext implements ExtensionContext {
 
     @Override
     public ExecutionMode getExecutionMode() {
+        return null;
+    }
+
+    @Override
+    public ExecutableInvoker getExecutableInvoker() {
         return null;
     }
 }
