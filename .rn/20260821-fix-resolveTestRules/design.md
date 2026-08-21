@@ -55,7 +55,7 @@ Temurin 21.0.11 で走らせた（`java -version` の出力）。
 | §4.3 既存テストで 1 件だけ落ちる | それは仕様変更そのもの |
 | §4.4 1-A で受け入れる制約 | **どのルールが使えて何が使えないかの一覧**と、制約 8 点 |
 | §4.5 記録しておく実装上の選択 | 5 点。うち (2) が判断2 で唯一選択の余地があった点、(5) が intercept メソッドを `final` にする判断 |
-| §4.6 恒久的なテストとして残したもの | タスク #4 で追加したテスト 20 件と、レビューを受けて足す 3 件 |
+| §4.6 恒久的なテストとして残したもの | タスク #4 で追加したテスト 24 件（`mvn test` 全体では 60 件） |
 | §5.1 判断1 — 存続 / 撤退 | **決定済み（1-A）。** 根拠と、受け入れた非互換 |
 | §5.2 判断2 — 直し方 | 要件を満たす形が 1 つしかない理由 |
 | §5.3 別課題 | NTF 本体から JUnit 依存を分離する |
@@ -385,7 +385,7 @@ JUnit 5 側の呼び出しは `TestMethodTestDescriptor#execute` が `invokeTest
 - `@RepeatedTest` / `@TestTemplate` でルールが正しく適用されるか →
   `git show 231eaa9:src/test/java/nablarch/test/junit5/extension/event/TestRuleEmulationIntegrationTest.java` の
   `:163-166` で固定した
-- `Timeout` と `DbAccessTestExtension` の併用が実際に壊れること → §4.4 (5) で実測した。§4.6 の恒久テストにも追加する
+- `Timeout` と `DbAccessTestExtension` の併用が実際に壊れること → §4.4 (5) で実測し、§4.6 の恒久テストにした
 
 `@Nested` は最小再現で実測できたので、未確認から外して §4.4 (7) に置いた。
 実測に加えて `git show 8780eb8:src/test/java/nablarch/test/junit5/extension/event/TestRuleEmulationIntegrationTest.java`
@@ -474,8 +474,9 @@ NTF の前処理より後に実行されて困るのは NTF 自身のルール�
 `SimpleRestTestExtension` は override 先を `resolveTestRules()` から `resolveInternalTestRules()` へ変えただけ
 （`231eaa9` の `:30-34`）。
 
-**`231eaa9` の時点で入っていない、決定済みの変更が 1 つある。** `interceptTestMethod` /
-`interceptTestTemplateMethod` を **`final`** にすること（§4.5 (5)）。理由と実測は §4.5 (5) にある。
+**この 2 つの intercept メソッドは、その後 `49f73f6`「fix: TestRuleを適用するinterceptメソッドをfinalにする」で
+`final` になった**（`javap -p target/classes/.../TestEventDispatcherExtension.class` の
+`public final void interceptTestMethod(...)` で確認）。理由と実測は §4.5 (5)。
 
 ### 4.2 実測結果
 
@@ -872,7 +873,8 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 `postProcessTestInstance` / `createSupport` の `final` 引数の 3 か所だけ）。
 **その慣行から外れることは承知のうえで、静かな喪失を防ぐ価値が上回ると判断した。**
 
-タスク #5 の Javadoc に、`final` である理由と、上の「別の Extension クラスとして実装する」逃げ道を書く。
+**この変更は `49f73f6` で入った。** タスク #5 の Javadoc に、`final` である理由と、
+上の「別の Extension クラスとして実装する」逃げ道を書く。
 
 
 ### 4.6 タスク #4 で恒久的なテストとして残したもの
@@ -893,15 +895,21 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 | `StandardTestRuleIntegrationTest` | 8 | §4.4 冒頭の「動く」一覧表を固定する。`TemporaryFolder` 2 件（一時ファイルがテスト本体から使えテスト後に消える／`@BeforeEach` の時点ではまだ作られていない）・`ExpectedException`・`ErrorCollector`・`Verifier`・`Stopwatch`・`RuleChain`・`DisableOnDebug` | §4.4 の一覧表、§4.4 (2) |
 
 補助として、失敗するテストを surefire に拾わせずに実行結果だけを観測する `JupiterEngineRunner`（下記）と、
-ルールを差し替えられる `ConfigurableTestRuleExtension` を置いた。
+ルールを差し替えられる `ConfigurableTestRuleExtension` を置いた。その後 `09f8934` で、重複したフィクスチャを
+`RuleIntegrationTestBase` と `RecordingRule` に寄せている。
 
-**今回のレビューを受けて足すもの。**
+**今回のレビューを受けて足したもの**（`8885ac9`「test: TestRuleの未固定だった4つの振る舞いを恒久テストにする」）。
 
-- テスト本体が例外を投げたときに、ルールの後処理へ到達し、元の例外が**同一インスタンスのまま**伝播すること（§4.5 (4)）
-- `Timeout` × `DbAccessTestExtension` の併用で、テスト本体から DB コネクションもトランザクションも取れないこと（§4.4 (5)）
-- `@TestFactory` にルールが適用されないこと（§4.4 (6)）。**これは「対応する」テストではなく、対応しない現状を
+- テスト本体が投げた例外がルールの後処理を経てから**同一インスタンスのまま**伝播すること
+  （`TestRuleInvocationContractIntegrationTest` に 1 件追加。同クラスは 4 件になった。§4.5 (4)）
+- `Timeout` × `DbAccessTestExtension` で、テスト本体から DB コネクションもトランザクションも取れないこと
+  （`TimeoutDbAccessIntegrationTest` 2 件。`DbAccessTestExtension` 単体との対照つき。§4.4 (5)）
+- `@TestFactory` が生成した動的テストにルールが適用されず、例外にもならないこと
+  （`TestFactoryRuleIntegrationTest` 1 件。§4.4 (6)）。**これは「対応する」テストではなく、対応しない現状を
   固定する特性テストである。** §4.4 (6) の「タスク #4 の対象外」という判断は変わらない。将来
   `interceptTestFactoryMethod` / `interceptDynamicTest` に手を入れるとき、このテストが出発点を示す
+- `RestTestExtension#setUpDb()` の実行時点で `testDescription` が設定済みであること
+  （`RestTestExtensionTest` に 1 件追加。§1.3 の条件 2 を固定する）
 
 **`Timeout` × `DbAccessTestExtension` を恒久テストにする。以前の判断を変えた。**
 この節にはかつて「(a) DB コネクションを実際に張る必要があり統合テスト環境に依存する、(b) 失敗の現れ方が
@@ -923,12 +931,17 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 テスト側にその依存を増やしていた。**
 
 `junit-platform-launcher` を **test スコープ**で足せば `LauncherFactory` で同じことができ、`LauncherFactory` は
-`API(status=STABLE, since="1.0")`（同じく `javap -v` で確認）。**したがって置き換える方針とした。**
+`API(status=STABLE, since="1.0")`（同じく `javap -v` で確認）。
 
-**ただしリスクが 1 つある。** 本モジュールの surefire は 2.22.2 と古く（`pom.xml:101-102`）、
-`junit-platform-launcher` を明示宣言すると surefire 側が持ち込む launcher と衝突しうる。
-**衝突した場合は `JupiterTestEngine` 直叩きに戻し、内部 API に依存していることと戻した理由を
-`JupiterEngineRunner` の Javadoc に明記する。** 置き換えの成否は本文書の作成時点では未確定である。
+**置き換えは `c06e4da`「build: JupiterEngineRunnerをjunit-platform-launcherベースに置き換える」で完了した。**
+`pom.xml` が `junit-platform-launcher` を test スコープで宣言し（版は junit-bom から）、`JupiterEngineRunner` は
+183 行から 141 行になった。**懸念していた surefire 2.22.2 との衝突は起きなかった。**
+根拠: `target/test-classes` の `JupiterEngineRunner.class` を `javap -v` に掛けると参照は
+`org/junit/platform/launcher/*` だけで `org/junit/jupiter/engine/*` が 1 つも残っておらず、
+`target/surefire-reports/` の `TEST-*.xml`（生成時刻 2026-08-21 22:58:26〜31。`c06e4da` の 22:58:53 より前だが、
+そのときワーキングツリーには既に置き換え後のソースと `pom.xml` があった）を集計すると
+**tests 60 / failures 0 / errors 0**。**ただし本文書の作成者は `mvn` を実行しておらず**（別のビルドと `target/` が
+衝突するため）、上は他のエージェントが走らせたビルドの成果物を読んだ結果である。
 
 ## 5. 判断ポイント
 
