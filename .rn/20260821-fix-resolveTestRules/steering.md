@@ -67,10 +67,10 @@ NTF としての方針判断を含むため、ユーザー（およびそのチ�
 - [x] `TestRuleEmulationIntegrationTest` を追加し、ルールの前処理・テスト本体・後処理の実行順を検証する
 - [x] 現行実装で FAIL することを確認する
 - [x] コミット・プッシュする
-- [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] self-check (OK/NG per completion criterion, record in checks/1.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
@@ -137,8 +137,17 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 - [ ] design.md §4.1 の差分を `src/main` に適用する
 - [ ] `TestEventDispatcherExtensionTest` の「TestRuleエミュレート時に例外が発生した場合〜」を
       `interceptTestMethod` 対象に書き換える（design.md §4.3）
-- [ ] `@ParameterizedTest` でルールが適用されることを検証するテストを追加する
 - [ ] `base` を呼ばないルールが `JUnitException` になることを検証するテストを追加する（design.md §4.4）
+- [ ] テスト本体が例外を投げてもルールの後処理に到達し、元の失敗が握り潰されないことを
+      検証するテストを追加する（#1 のレビューからの申し送り）
+- [ ] 解説書の `Timeout` の例を恒久的なテストとして追加する
+      （同じ主張が二度と出典なしにならないようにするため。#2 のレビューからの申し送り）
+- [ ] `Timeout` と `DbAccessTestExtension` / `RestTestExtension` が併用できないことを実測で確認し、
+      design.md §4.4 の記述と一致することを確かめる（#2 の Design レビューからの申し送り）
+- [ ] `@TestFactory` / `DynamicTest` にルールが適用されないことを仕様として確定させる
+      （#2 のレビューからの申し送り。Javadoc への明記は #5）
+- [ ] `TestRuleEmulationIntegrationTest` のクラス Javadoc から
+      「意図的に失敗する」段落を削除する（#1 の Craft レビューからの申し送り）
 - [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -152,8 +161,11 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 - `TestEventDispatcherExtensionLifecycleMethodTest` が成功し続けている
   （NTF の前処理とテスト名の設定が、ユーザーの `@BeforeEach` より前に行われている）
 - `RestTestExtension#beforeEach` の `setUpDb()` が `testDescription` を参照できている
-- `@ParameterizedTest` でも TestRule が同様に適用される
+- `@ParameterizedTest` でも TestRule が同様に適用される（#1 で FAIL として固定済み）
+- 複数のルールを登録したときの入れ子順が保たれている（#1 で FAIL として固定済み）
 - ルールが投げた例外が `RuntimeException` に包まれずそのまま伝播する
+- テスト本体が失敗してもルールの後処理に到達し、元の失敗がルールに握り潰されない
+- `Timeout` と DB 系 Extension の併用不可が、実測と design.md §4.4 の記述で一致している
 - `mvn test` が全件成功する
 
 ### #5: Javadoc を実装と一致させる
