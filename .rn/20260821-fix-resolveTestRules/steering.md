@@ -33,7 +33,12 @@ NTF としての方針判断を含むため、ユーザー（およびそのチ�
   - PR #3（148db9a、2022-01-31）以前は `InvocationInterceptor` を使っており TestRule は動作していた。
     ただし NTF の前処理がユーザーの `@BeforeEach` より後に実行されていた（実測で確認）
   - JUnit 5.11.0 上で `interceptTestMethod` の `invocation.proceed()` を `Timeout` で包むと
-    `TestTimedOutException` が発生する（実測で確認）
+    `TestTimedOutException` が発生する（プロトタイプで実測。解説書の `Timeout` の例が実際にタイムアウトする）
+  - プロトタイプ適用後、`@ParameterizedTest` でもルールが適用され、
+    `TestEventDispatcherExtensionLifecycleMethodTest` は成功し続ける。
+    既存テストで落ちるのは `TestEventDispatcherExtensionTest` の 1 件のみで、これは仕様変更そのもの
+  - `base` を呼ばないルールを渡すと
+    `JUnitException: Chain of InvocationInterceptors never called invocation` になる（実測で確認）
   - JUnit は「JUnit 4 の Rule をネイティブにサポートしないし、今後もしない」と明言している
   - 本モジュールは `junit-jupiter-migrationsupport` を使っていない。JUnit 4 本体
     （`junit:junit:4.13.1`、compile スコープ）に直接依存している
@@ -102,34 +107,38 @@ NTF としての方針判断を含むため、ユーザー（およびそのチ�
 
 ### #3: Design sign-off
 
-**Purpose**: 改善の方針（案 A / 案 B / 案 C）をユーザーが決定する。
+**Purpose**: `resolveTestRules()`（TestRule 再現機構）を存続させるか撤退するかを、ユーザーが決定する。
+直し方（design.md §5.2）は選択肢が存在しないため判断対象ではない。
 
 **Prerequisites**: #2
 
 **Steps**:
 
-- [ ] design.md をユーザーに提示する
+- [x] design.md をユーザーに提示する
+- [x] `/rn:gm` を受けて判断ポイントを 2 段階に整理し直し、直し方を検証済みの差分として提示する
 - [ ] `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）で判定を受ける
 
 **Completion criteria**:
 
-- design.md が承認されている
-- 以降のタスクが、どの方針を前提にしているかが確定している
+- 判断1（存続 1-A / 撤退 1-B）が決定されている
+- 以降のタスクが、どちらを前提にしているかが確定している
 
 ### #4: TestRule の適用先を分離する
 
 **Purpose**: 利用者が `resolveTestRules()` で追加した TestRule がテストメソッドの実行を包むようにする。
 NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は変えない。
 
-**Prerequisites**: #3（案 B が選択された場合。他の案が選択された場合は本タスクを差し替える）
+**Prerequisites**: #3（1-A 存続 が選択された場合。1-B 撤退 が選択された場合は本タスクを差し替える）
+
+実装差分は design.md §4.1 に全文がある。プロトタイプで検証済み（§4.2）。
 
 **Steps**:
 
-- [ ] `TestEventDispatcherExtension` に `InvocationInterceptor` を実装し、`resolveTestRules()` が返すルールで
-      `invocation.proceed()` を包む
-- [ ] `interceptTestTemplateMethod` を実装し、`@ParameterizedTest` / `@RepeatedTest` でも同様に動作させる
-- [ ] `TestName` / `TestDescription` を適用する内部経路を `beforeEach` 側に分離する
-- [ ] `SimpleRestTestExtension` の `testDescription` の登録先を内部経路へ移す
+- [ ] design.md §4.1 の差分を `src/main` に適用する
+- [ ] `TestEventDispatcherExtensionTest` の「TestRuleエミュレート時に例外が発生した場合〜」を
+      `interceptTestMethod` 対象に書き換える（design.md §4.3）
+- [ ] `@ParameterizedTest` でルールが適用されることを検証するテストを追加する
+- [ ] `base` を呼ばないルールが `JUnitException` になることを検証するテストを追加する（design.md §4.4）
 - [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -144,6 +153,7 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
   （NTF の前処理とテスト名の設定が、ユーザーの `@BeforeEach` より前に行われている）
 - `RestTestExtension#beforeEach` の `setUpDb()` が `testDescription` を参照できている
 - `@ParameterizedTest` でも TestRule が同様に適用される
+- ルールが投げた例外が `RuntimeException` に包まれずそのまま伝播する
 - `mvn test` が全件成功する
 
 ### #5: Javadoc を実装と一致させる
@@ -156,6 +166,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 - [ ] `resolveTestRules()` の Javadoc に、ルールが包む範囲（テストメソッドのみ）を明記する
 - [ ] `@BeforeEach` / `@AfterEach` が包まれないこととその理由を明記する
+- [ ] `base` を呼ばないルールは使えないことを明記する（design.md §4.4）
+- [ ] 基底実装が空リストを返すようになったことを明記する（design.md §4.5）
 - [ ] JUnit 5 に同等機能がある場合はそちらを優先する旨を追記する
 - [ ] self-check (OK/NG per completion criterion, record in checks/5.md)
 - [ ] QA expert review (subagent)
@@ -175,8 +187,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [ ] `ja/` の該当 rst の修正差分案を作成する
-- [ ] `en/` の該当 rst の修正差分案を作成する
+- [ ] `ja/…/JUnit5_Extension.rst:416-418` と `:420-421` の修正差分案を作成する（design.md §6）
+- [ ] `en/` の対応箇所の修正差分案を作成する
 - [ ] 本リポジトリでは反映できないこと、および反映先を明記する
 - [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
 - [ ] QA expert review (subagent)
@@ -208,10 +220,15 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 - **Status**: paused
 - **Date**: 2026-08-21
-- **Last completed**: なし。#1・#2 は成果物の作成とコミットまで完了、self-check と各レビューが未実施
-- **Next**: プランゲートの承認（`/rn:ty`）または修正指示（`/rn:gm`）
+- **Last completed**: #1・#2 は成果物の作成とコミットまで完了、self-check と各レビューが未実施。
+  `/rn:gm` を受けて design.md を改訂（判断ポイントを 2 段階に整理、直し方を検証済み差分として §4 に記載、
+  解説書との一致を §6 に追加）
+- **Next**: design.md §5.1 の判断1（1-A 存続 / 1-B 撤退）をユーザーが決定する
 - **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR https://github.com/nablarch/nablarch-testing-junit5/pull/12 。
-  改善方針は未確定。`design.md` は案 B（TestRule の適用先を分離する）を採用案として記載しているが、決定は #3 Design sign-off で行う。
-  案 A / 案 C が選ばれた場合は #4〜#6 を差し替える。
+  判断2（直し方）は選択肢が存在しないため判断対象外。実装差分は design.md §4.1 に全文があり、
+  プロトタイプで検証済み（§4.2）。プロトタイプはワーキングツリーから戻してあり、`src/main` は未変更。
+  検証に使った差分は
+  `/tmp/claude-1000/-home-tie303177-work-nablarch-nablarch-testing-junit5--claude-worktrees-fix-resolveTestRules/48f244cb-cc43-459d-a8f5-f33d9b3f7219/scratchpad/prototype.diff`
+  にあるが、セッション固有なので design.md §4.1 を正とする。
   未処理: 調査中に公開したアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
   Artifact ツールに削除の口がないため削除できていない。claude.ai/code/artifacts のギャラリーからユーザーが削除する必要がある。
