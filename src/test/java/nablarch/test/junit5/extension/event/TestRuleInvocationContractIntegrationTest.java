@@ -1,8 +1,6 @@
 package nablarch.test.junit5.extension.event;
 
 import nablarch.test.junit5.extension.JupiterEngineRunner;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
@@ -11,9 +9,8 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -30,24 +27,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * {@code base} を呼ばないルール(スキップ系)や 2 回以上呼ぶルール(リトライ系)も書けてしまうため、
  * それらを渡したときに何が起きるかをここで固定する。
  * </p>
+ * <p>
+ * あわせて、テスト本体が例外を投げた場合にルールの後処理まで到達し、
+ * その例外が置き換えられずに伝播することも固定する。
+ * </p>
  * @author Ito Kiyohito
  */
-public class TestRuleInvocationContractIntegrationTest {
+public class TestRuleInvocationContractIntegrationTest extends RuleIntegrationTestBase {
 
     /**
-     * 実行対象のテストクラスとルールが書き込む実行ログ。
+     * {@link ThrowingTestBodyFixture} のテスト本体が投げる例外。
+     * <p>
+     * 伝播した例外が同一のインスタンスであることを表明するため、あらかじめ生成しておく。
+     * </p>
      */
-    static final List<String> executionLog = Collections.synchronizedList(new ArrayList<>());
-
-    @BeforeEach
-    void setUpExecutionLog() {
-        executionLog.clear();
-    }
-
-    @AfterEach
-    void clearTestRules() {
-        ConfigurableTestRuleExtension.clearTestRules();
-    }
+    static final IllegalStateException THROWN_BY_TEST_BODY = new IllegalStateException("テスト本体が投げた例外");
 
     @Test
     void baseを呼ばないルールを追加した場合はテストが例外で失敗し_テスト本体が実行されないことをテスト() {
@@ -84,14 +78,27 @@ public class TestRuleInvocationContractIntegrationTest {
         assertThat(executionLog, is(Collections.emptyList()));
     }
 
+    @Test
+    void テスト本体が投げた例外はルールの後処理を経てから_置き換えられずそのまま伝播することをテスト() {
+        ConfigurableTestRuleExtension.setTestRules(recordingRule("rule"));
+
+        JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(ThrowingTestBodyFixture.class);
+
+        assertThat("テスト本体が投げた例外はそのまま失敗の原因になる",
+                summary.getOnlyFailure(), is(sameInstance(THROWN_BY_TEST_BODY)));
+        assertThat("テスト本体が例外を投げてもルールの後処理は実行される",
+                executionLog, is(Arrays.asList("rule-before", "test", "rule-after")));
+    }
+
     /**
-     * テスト本体が実行されたことだけを記録する、実行対象のテストクラス。
+     * テスト本体が実行されたことを記録したうえで例外を投げる、実行対象のテストクラス。
      */
     @ExtendWith(ConfigurableTestRuleExtension.class)
-    static class RecordingTestFixture {
+    static class ThrowingTestBodyFixture {
         @Test
         void test() {
             executionLog.add("test");
+            throw THROWN_BY_TEST_BODY;
         }
     }
 

@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -41,6 +42,29 @@ public class RestTestExtensionTest {
 
         assertThat(spiedSupport.testName.getMethodName(), is("testForMock"));
         assertThat(spiedSupport.testDescription.getTestClass(), is(equalTo(RestTestExtensionTest.class)));
+    }
+
+    @Test
+    void setUpDbが実行される時点でtestDescriptionが設定済みであることをテスト() throws Exception {
+        sut.postProcessTestInstance(this, null);
+
+        final RestTestSupport originalSupport = ReflectionUtil.getFieldValue(sut, "support");
+        final RestTestSupport spiedSupport = spy(originalSupport);
+        ReflectionUtil.setFieldValue(sut, "support", spiedSupport);
+
+        final Class<?>[] testClassInSetUpDb = new Class<?>[1];
+        doAnswer(invocation -> {
+            testClassInSetUpDb[0] = spiedSupport.testDescription.getTestClass();
+            return null;
+        }).when(spiedSupport).setUpDb();
+
+        ExtensionContext context = new MockExtensionContext(RestTestExtensionTest.class,
+                RestTestExtensionTest.class.getDeclaredMethod("testForMock"));
+
+        sut.beforeEach(context);
+
+        assertThat("setUpDb() は testDescription が設定された後に実行される",
+                testClassInSetUpDb[0], is(equalTo(RestTestExtensionTest.class)));
     }
 
     @Test
