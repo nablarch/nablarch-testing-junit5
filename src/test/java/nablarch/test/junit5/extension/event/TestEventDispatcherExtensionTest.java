@@ -10,6 +10,7 @@ import nablarch.test.junit5.extension.NablarchTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -22,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 
 /**
@@ -29,6 +31,12 @@ import static org.junit.Assert.assertThrows;
  * @author Tanaka Tomoyuki
  */
 class TestEventDispatcherExtensionTest {
+
+    /**
+     * 何も行わないテストメソッドの実行。
+     */
+    private static final InvocationInterceptor.Invocation<Void> NOOP_INVOCATION = () -> null;
+
     final MockTestEventDispatcherExtension sut = new MockTestEventDispatcherExtension();
 
     public TestEventDispatcher publicDispatcher;
@@ -108,7 +116,7 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void beforeEachを実行すると_TestRuleのエミュレートが行われることをテスト() throws Throwable {
+    void beforeEachを実行すると_内部のTestRuleのエミュレートが行われることをテスト() throws Throwable {
         sut.postProcessTestInstance(this, null);
 
         ExtensionContext mockContext = new MockExtensionContext(TestEventDispatcherExtensionTest.class,
@@ -120,7 +128,26 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void TestRuleエミュレート時に例外が発生した場合は_発生した例外を原因として持つ実行時例外がスローされること() throws Throwable {
+    void 内部のTestRuleエミュレート時に例外が発生した場合は_発生した例外を原因として持つ実行時例外がスローされること() throws Throwable {
+        Exception exception = new Exception("test");
+
+        TestEventDispatcherExtension sut = new MockTestEventDispatcherExtension() {
+            @Override
+            protected List<TestRule> resolveInternalTestRules() {
+                return Collections.singletonList(new ErrorTestRule(exception));
+            }
+        };
+
+        sut.postProcessTestInstance(this, null);
+
+        final RuntimeException e = assertThrows(RuntimeException.class,
+                () -> sut.beforeEach(MockExtensionContext.any()));
+
+        assertThat(e.getCause(), is(exception));
+    }
+
+    @Test
+    void interceptTestMethodでTestRuleが例外をスローした場合は_その例外がそのままスローされること() throws Throwable {
         Exception exception = new Exception("test");
 
         TestEventDispatcherExtension sut = new MockTestEventDispatcherExtension() {
@@ -132,10 +159,17 @@ class TestEventDispatcherExtensionTest {
 
         sut.postProcessTestInstance(this, null);
 
-        final RuntimeException e = assertThrows(RuntimeException.class,
-                () -> sut.beforeEach(MockExtensionContext.any()));
+        final Exception e = assertThrows(Exception.class,
+                () -> sut.interceptTestMethod(NOOP_INVOCATION, null, MockExtensionContext.any()));
 
-        assertThat(e.getCause(), is(exception));
+        assertThat(e, is(sameInstance(exception)));
+    }
+
+    @Test
+    void resolveTestRulesの基底実装は空のリストを返すことをテスト() throws Exception {
+        sut.postProcessTestInstance(this, null);
+
+        assertThat(sut.resolveTestRules(), is(Collections.emptyList()));
     }
 
     @Test

@@ -3,6 +3,7 @@ package nablarch.test.junit5.extension.event;
 import nablarch.test.event.TestEventDispatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,13 +29,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * {@link TestEventDispatcherExtension#resolveTestRules()} で追加した JUnit 4 の {@link TestRule} が、
  * テストメソッドの実行を包む形で再現されることをテストする。
  * <p>
- * <strong>このテストは、現時点では意図的に失敗する。</strong>
- * 現在の実装は {@link TestRule} を前処理({@code beforeEach})の中だけで評価するため、
- * ルールの後処理がテストメソッドの実行より前に終わってしまう。
- * この未実装の仕様を失敗として固定するのがこのテストの役割であり、
- * タスク #4「TestRule の適用先を分離する」で実装を修正した時点で成功するようになる。
- * </p>
- * <p>
  * 検証は {@link #ルールがテスト本体を包んでいたことを検証する(TestInfo)} でまとめて行い、
  * 各テストメソッドの本体は自身が実行されたことを記録するだけである。
  * したがって、このクラスに {@link Test} を追加する場合は、
@@ -42,10 +36,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * 記録を行わないテストを追加すると、そのテスト自身が {@code @AfterEach} の検証で失敗する。
  * </p>
  * <p>
- * {@link ParameterizedTest} を置いているのは、 {@link Test} とは別経路
+ * {@link ParameterizedTest} と {@link RepeatedTest} を置いているのは、 {@link Test} とは別経路
  * ({@code interceptTestTemplateMethod}) で実行されるテストもルールに包まれることを固定するためであり、
  * {@link Test} の繰り返しではない。
- * {@link ValueSource} で 2 値を与えているのは、テストメソッドの実行ごとに
+ * どちらも複数回実行するようにしているのは、テストメソッドの実行ごとに
  * サポートクラスと実行ログが作り直されること(ログが持ち越されないこと)も同時に押さえるためである。
  * </p>
  * <p>
@@ -162,6 +156,11 @@ public class TestRuleEmulationIntegrationTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
     void パラメータ化テストの実行がTestRuleに包まれていることをテスト(int parameter) {
+        support.recordTestMethodExecution();
+    }
+
+    @RepeatedTest(2)
+    void 繰り返しテストの実行がTestRuleに包まれていることをテスト() {
         support.recordTestMethodExecution();
     }
 
