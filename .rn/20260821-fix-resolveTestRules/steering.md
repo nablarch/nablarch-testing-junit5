@@ -227,8 +227,6 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 - **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR https://github.com/nablarch/nablarch-testing-junit5/pull/12 。
   判断2（直し方）は選択肢が存在しないため判断対象外。実装差分は design.md §4.1 に全文があり、
   プロトタイプで検証済み（§4.2）。プロトタイプはワーキングツリーから戻してあり、`src/main` は未変更。
-  検証に使った差分は
-  `/tmp/claude-1000/-home-tie303177-work-nablarch-nablarch-testing-junit5--claude-worktrees-fix-resolveTestRules/48f244cb-cc43-459d-a8f5-f33d9b3f7219/scratchpad/prototype.diff`
-  にあるが、セッション固有なので design.md §4.1 を正とする。
+  #4 を始めるときは design.md §4.1 の差分をそのまま適用すればよい。
   未処理: 調査中に公開したアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
   Artifact ツールに削除の口がないため削除できていない。claude.ai/code/artifacts のギャラリーからユーザーが削除する必要がある。
