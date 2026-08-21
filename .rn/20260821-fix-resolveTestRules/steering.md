@@ -187,8 +187,15 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
       （解説書には (1)(2)(3)(5)(6) だけを書く。design.md §4.4 冒頭の書き分けに従う）
 - [ ] design.md §4.4 の「どのルールが使えて何が使えないか」の一覧を Javadoc に反映する
 - [ ] 基底実装が空リストを返すようになったことを明記する（design.md §4.5 (1)）
-- [ ] `resolveInternalTestRules()` の Javadoc に、**NTF 内部専用であり利用者は override しないこと**を
-      明記する（design.md §4.5 (2)）
+- [ ] `resolveInternalTestRules()` の Javadoc に、**NTF 内部専用であり利用者は override しないこと**と、
+      ここに置いたルールが投げた例外は `RuntimeException` に包まれること（design.md §4.5 (4)）を明記する
+- [ ] `resolveTestRules()` が `null` を返した場合・リストに `null` が混ざった場合は素の NPE になる。
+      ガードするか「`null` を返さないこと」を Javadoc に明記するかを判断する（#4 の Verification レビュー）
+- [ ] `@ParameterizedTest` では全 invocation の `Description` が同一になり、
+      invocation ごとに状態を持つルールは区別できないことを明記する（#4 の Design レビュー）
+- [ ] `interceptTestMethod` / `interceptTestTemplateMethod` を `final` にした理由を Javadoc に明記する
+      （利用者が自分で override すると `resolveTestRules()` のルールが静かに消えるため。
+      別の Extension クラスとして `InvocationInterceptor` を実装すれば従来どおりのことができる）
 - [ ] `resolveTestRules()` の既存 Javadoc にある「親クラスが返したリストをベースにすること」という
       コード例を、基底実装が空リストを返すようになったことに合わせて書き換える（design.md §4.1 の省略 (a)）
 - [ ] JUnit 5 に同等機能がある場合はそちらを優先する旨を追記する
