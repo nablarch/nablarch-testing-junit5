@@ -92,11 +92,11 @@ NTF としての方針判断を含むため、ユーザー（およびそのチ�
 - [x] JUnit の公式方針とバージョン保守状況を一次情報で確認する
 - [x] 選択肢を洗い出し、判断軸ごとに比較する
 - [x] コミット・プッシュする
-- [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
+- [x] self-check (OK/NG per completion criterion, record in checks/2.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [x] Design expert review (subagent)
 
 **Completion criteria**:
 
@@ -135,21 +135,24 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [ ] design.md §4.1 の差分を `src/main` に適用する
+- [ ] design.md §4.1 の差分を `src/main` に適用する。**要約 diff なので、同節が挙げる 4 つの省略
+      （既存 Javadoc の書き換え・新設メソッドの Javadoc・`interceptTestTemplateMethod` の本体・
+      `convert()` の修正）は自分で補う**
+- [ ] design.md §4.4 (4) の `convert()` の修正を入れる
+      （`Description` にテストメソッドのアノテーションを載せる。受け入れずに塞ぐと決めた唯一の制約）
 - [ ] `TestEventDispatcherExtensionTest` の「TestRuleエミュレート時に例外が発生した場合〜」を
       `interceptTestMethod` 対象に書き換える（design.md §4.3）
-- [ ] `base` を呼ばないルールが `JUnitException` になることを検証するテストを追加する（design.md §4.4）
-- [ ] テスト本体が例外を投げてもルールの後処理に到達し、元の失敗が握り潰されないことを
-      検証するテストを追加する（#1 のレビューからの申し送り）
-- [ ] 解説書の `Timeout` の例を恒久的なテストとして追加する
-      （同じ主張が二度と出典なしにならないようにするため。#2 のレビューからの申し送り）
-- [ ] `Timeout` と `DbAccessTestExtension` が併用できないことを実測で確認し、design.md §4.4(3) の
-      記述と一致することを確かめる（`RestTestExtension` はこの問題を持たない。design.md §4.4(3)）。
+- [ ] **design.md §4.6 が挙げるテスト（新規 9 件 + 既存流用 1 件）を追加する。**
+      個別の列挙は design.md 側を正とし、ここでは重複させない
+- [ ] `Timeout` と `DbAccessTestExtension` が併用できないことを実測で確認し、design.md §4.4 (5) の
+      記述と一致することを確かめる（`RestTestExtension` はこの問題を持たない）。
       design.md §4.6 の判断により恒久テストには含めない
-- [ ] `@TestFactory` / `DynamicTest` にルールが適用されないことを仕様として確定させる
-      （#2 のレビューからの申し送り。Javadoc への明記は #5）
+- [ ] `@TestFactory` / `DynamicTest`（§4.4 (6)）と `@Nested`（§4.4 (7)）を対象外とする判断を確定させる。
+      §4.4 (7) は 1-A 以前からある別課題であり、非互換の一覧には数えない
 - [ ] `TestRuleEmulationIntegrationTest` のクラス Javadoc から
       「意図的に失敗する」段落を削除する（#1 の Craft レビューからの申し送り）
+- [ ] `TestRuleEmulationIntegrationTest` の `@author` を、ユーザーが指定した名前に直す
+      （#1 の Craft レビューからの申し送り。回答が得られていない場合はこの時点で再度確認する）
 - [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -166,8 +169,10 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 - `@ParameterizedTest` でも TestRule が同様に適用される（#1 で FAIL として固定済み）
 - 複数のルールを登録したときの入れ子順が保たれている（#1 で FAIL として固定済み）
 - ルールが投げた例外が `RuntimeException` に包まれずそのまま伝播する
-- テスト本体が失敗してもルールの後処理に到達し、元の失敗がルールに握り潰されない
-- `Timeout` と `DbAccessTestExtension` の併用不可が、実測と design.md §4.4(3) の記述で一致している
+- `Description` にテストメソッドのアノテーションが載っている（design.md §4.4 (4)）
+- **design.md §4.4 の一覧表のうち「動く」とされた 9 種のルールが、実際に表のとおりに動く**
+- `Timeout` と `DbAccessTestExtension` の併用不可が、実測と design.md §4.4 (5) の記述で一致している
+- design.md §4.6 のテストがすべて追加され、成功している
 - `mvn test` が全件成功する
 
 ### #5: Javadoc を実装と一致させる
@@ -178,10 +183,14 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [ ] `resolveTestRules()` の Javadoc に、ルールが包む範囲（テストメソッドのみ）を明記する
-- [ ] `@BeforeEach` / `@AfterEach` が包まれないこととその理由を明記する
-- [ ] `base` を呼ばないルールは使えないことを明記する（design.md §4.4）
-- [ ] 基底実装が空リストを返すようになったことを明記する（design.md §4.5）
+- [ ] `resolveTestRules()` の Javadoc に **design.md §4.4 の制約 8 点をすべて**明記する
+      （解説書には (1)(2)(3)(5)(6) だけを書く。design.md §4.4 冒頭の書き分けに従う）
+- [ ] design.md §4.4 の「どのルールが使えて何が使えないか」の一覧を Javadoc に反映する
+- [ ] 基底実装が空リストを返すようになったことを明記する（design.md §4.5 (1)）
+- [ ] `resolveInternalTestRules()` の Javadoc に、**NTF 内部専用であり利用者は override しないこと**を
+      明記する（design.md §4.5 (2)）
+- [ ] `resolveTestRules()` の既存 Javadoc にある「親クラスが返したリストをベースにすること」という
+      コード例を、基底実装が空リストを返すようになったことに合わせて書き換える（design.md §4.1 の省略 (a)）
 - [ ] JUnit 5 に同等機能がある場合はそちらを優先する旨を追記する
 - [ ] self-check (OK/NG per completion criterion, record in checks/5.md)
 - [ ] QA expert review (subagent)
