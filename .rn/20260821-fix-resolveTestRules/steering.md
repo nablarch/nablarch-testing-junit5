@@ -142,11 +142,12 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
       （`Description` にテストメソッドのアノテーションを載せる。受け入れずに塞ぐと決めた唯一の制約）
 - [ ] `TestEventDispatcherExtensionTest` の「TestRuleエミュレート時に例外が発生した場合〜」を
       `interceptTestMethod` 対象に書き換える（design.md §4.3）
-- [ ] **design.md §4.6 が挙げるテスト（新規 9 件 + 既存流用 1 件）を追加する。**
-      個別の列挙は design.md 側を正とし、ここでは重複させない
+- [ ] **design.md §4.6 が挙げるテストを追加する。** 件数と個別の列挙は design.md 側を正とし、
+      ここでは重複させない（レビューを経て件数は増えている）
 - [ ] `Timeout` と `DbAccessTestExtension` が併用できないことを実測で確認し、design.md §4.4 (5) の
       記述と一致することを確かめる（`RestTestExtension` はこの問題を持たない）。
-      design.md §4.6 の判断により恒久テストには含めない
+      **恒久テストとして残す**（当初は除外する判断だったが、既存の `MockConnectionFactory` /
+      `MockTransactionFactory` で実測できることが分かったため反転した。design.md §4.6）
 - [ ] `@TestFactory` / `DynamicTest`（§4.4 (6)）と `@Nested`（§4.4 (7)）を対象外とする判断を確定させる。
       §4.4 (7) は 1-A 以前からある別課題であり、非互換の一覧には数えない
 - [ ] `TestRuleEmulationIntegrationTest` のクラス Javadoc から
@@ -194,8 +195,11 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 - [ ] `@ParameterizedTest` では全 invocation の `Description` が同一になり、
       invocation ごとに状態を持つルールは区別できないことを明記する（#4 の Design レビュー）
 - [ ] `interceptTestMethod` / `interceptTestTemplateMethod` を `final` にした理由を Javadoc に明記する
-      （利用者が自分で override すると `resolveTestRules()` のルールが静かに消えるため。
-      別の Extension クラスとして `InvocationInterceptor` を実装すれば従来どおりのことができる）
+      （利用者が自分で override すると `resolveTestRules()` のルールが静かに消えるため）。
+      **代替手段（別の Extension クラスとして `InvocationInterceptor` を実装する）には但し書きが要る** ——
+      別 Extension からは基底の `protected support` フィールドに届かない（#4 の Design レビューが実測）
+- [ ] `implements InvocationInterceptor` により、`final` にした 2 本以外に 7 本の default メソッドが
+      `@Published` クラスの override 可能面として開くことを明記する（#4 の Design レビュー）
 - [ ] `resolveTestRules()` の既存 Javadoc にある「親クラスが返したリストをベースにすること」という
       コード例を、基底実装が空リストを返すようになったことに合わせて書き換える（design.md §4.1 の省略 (a)）
 - [ ] JUnit 5 に同等機能がある場合はそちらを優先する旨を追記する
