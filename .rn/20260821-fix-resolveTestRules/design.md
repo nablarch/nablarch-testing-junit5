@@ -15,7 +15,7 @@ Temurin 21.0.11 で走らせた（`java -version` の出力）。
 **これは決定済みの記録である。** 判断1（`resolveTestRules()` を存続させるか撤退するか）は 2026-08-21 に
 **1-A（存続させて直す）** で決定した（§5.1）。判断2（直し方）は**要件を満たす形が 1 つしかない**ため、
 決定事項として §4 に記録する（§5.2）。判断2 のなかで唯一選択の余地があった §4.5 (2)
-（内部ルール用の `protected` メソッドを新設して公開 API を 1 本増やすか）も、
+（内部ルール用の `protected` メソッドを新設するか）も、
 **新設で決定。ただし「公開 API を増やさない」が優先方針になった場合の切り替え先として代替 A を残す。**
 以降のタスク #4〜#6 はすべて 1-A を前提とする。この文書は、その決定の根拠と、決定に伴って受け入れた制約を残すためのもの。
 
@@ -30,17 +30,16 @@ Temurin 21.0.11 で走らせた（`java -version` の出力）。
 | **`RestTestSupport` / `SimpleRestTestSupport`** | 上記のうち REST テスト用のもの。Maven アーティファクトは `nablarch-testing-rest`（本モジュールの optional 依存。`pom.xml:43-49`）で、**`nablarch-testing` ではない**。`RestTestSupport` は `SimpleRestTestSupport` を継承し、DB セットアップ機能を足したもの |
 | **`@Published`** | Nablarch が後方互換性を維持する公開 API であることを表すアノテーション。クラス宣言に付いている場合は「クラスの全てのAPIを公開APIとする」意味で、「利用者がオーバーライド可能なメソッドも公開APIとする」と定義されている（`nablarch-core` sources `nablarch/core/util/annotation/Published.java:14,16`） |
 | **タスク #1 / #4 / #5 / #6** | `steering.md` の Tasks に定義された作業単位。#1 = 不具合を固定するテストを追加する、#4 = TestRule の適用先を分離する（実装）、#5 = Javadoc を実装と一致させる、#6 = 解説書の修正差分案を作成する |
-| **プロトタイプ** | 本セッション内で、判断1 の決定より前に §4.1 の差分を実際に `src/main` へ当てて動かし、検証後にワーキングツリーから取り消した実装。コミットしていないため git 履歴には残っていない（§4.2） |
+| **プロトタイプ** | 本セッション内で、判断1 の決定より前に `src/main` を実際に書き換えて動かし、検証後に取り消した実装。コミットしていないため git 履歴に残っていない（§4.2）。タスク #4 の実装（`0c2047f`）とは別物 |
 
-**見出しの言語** — rn の design テンプレート由来の見出しは英語のまま使い、テンプレートにないものは日本語にする。
-§1〜§3 のうちテンプレート由来の小節（§1.1〜§1.5・§2.1・§2.2・§3.1〜§3.3）は英語で、
-テンプレートにない §2.3 は日本語。§4 は節見出しだけがテンプレート由来の英語で、小見出しは日本語。
-§0・§5・§6 は見出しも日本語。冒頭の英文リード 2 行もテンプレート由来。混在しているのはこの規則による。
+**見出しの言語** — rn の design テンプレート由来の見出し（§1〜§4 の節・小節と冒頭の英文リード 2 行）は英語のまま、
+テンプレートにないもの（§0・§2.3・§4 の小見出し・§5・§6）は日本語。混在しているのはこの規則による。
 
 **行番号と出典の基準**
 
-- `src/main` / `pom.xml` は本リポジトリのコミット `b2ecc31` 時点（`git diff b2ecc31 HEAD -- src/main pom.xml` が空であることを確認済み）
-- **`src/test` を参照するときは毎回コミットを明示する。** 本セッションのタスク #1 で改訂したため
+- `src/main` / `pom.xml` の行番号は、断りのない限り本リポジトリのコミット `b2ecc31` 時点（タスク #4 の実装より前）
+- **タスク #4 の実装後の `src/main` を指すときは、コミット `231eaa9` を明示する**（§4.1）
+- **`src/test` を参照するときは毎回コミットを明示する。** 本セッションのタスク #1 と #4 で改訂したため
 - 外部の jar は sources jar を `~/.m2/repository` から展開して確認した。sources jar がないものは
   `javap -p -c -l` の LineNumberTable で照合した
 
@@ -51,12 +50,12 @@ Temurin 21.0.11 で走らせた（`java -version` の出力）。
 | §1 Background & Goals | 何が壊れているか、どう壊れているか、なぜ 4 年半検知されなかったか |
 | §2 Assumptions & Constraints | 真とみなす事実（§2.1）、解を縛る条件（§2.2）、未確認事項（§2.3） |
 | §3 Design overview | 「ルールの性質で適用先を分ける」という中心の考え |
-| §4.1 変更差分 | `src/main` の要約 diff |
+| §4.1 変更差分 | `src/main` の変更点（実装済み。`0c2047f`） |
 | §4.2 実測結果 | プロトタイプの表（再現物なし）と、本セッションで走らせた最小再現 |
 | §4.3 既存テストで 1 件だけ落ちる | それは仕様変更そのもの |
 | §4.4 1-A で受け入れる制約 | **どのルールが使えて何が使えないかの一覧**と、制約 8 点 |
-| §4.5 記録しておく実装上の選択 | 4 点。うち (2) が判断2 で唯一選択の余地があった点 |
-| §4.6 恒久的なテストとして残すもの | タスク #4 で追加するテスト 10 件（新規 9 + 既存流用 1） |
+| §4.5 記録しておく実装上の選択 | 5 点。うち (2) が判断2 で唯一選択の余地があった点、(5) が intercept メソッドを `final` にする判断 |
+| §4.6 恒久的なテストとして残したもの | タスク #4 で追加したテスト 20 件と、レビューを受けて足す 3 件 |
 | §5.1 判断1 — 存続 / 撤退 | **決定済み（1-A）。** 根拠と、受け入れた非互換 |
 | §5.2 判断2 — 直し方 | 要件を満たす形が 1 つしかない理由 |
 | §5.3 別課題 | NTF 本体から JUnit 依存を分離する |
@@ -69,11 +68,12 @@ Temurin 21.0.11 で走らせた（`java -version` の出力）。
   `ExternalResource` の後処理はテスト本体より前に走り、`ErrorCollector` は黙って成功する（§1.1、§1.2）
 - **どう直すか** — 利用者のルールだけを `InvocationInterceptor#interceptTestMethod` へ移し、NTF が内部で使う
   ルール（`TestName` / `TestDescription`）は `beforeEach` に残す。内部用に
-  `protected resolveInternalTestRules()` を新設する（§3、§4.1）
+  `protected resolveInternalTestRules()` を新設する（§3、§4.1）。**公開 API は 3 本＋interface 1 つ増える**（§4.5 (2)）
 - **受け入れた制約** — ルールが包むのはテストメソッドの呼び出しだけで、`@BeforeEach` / `@AfterEach` は含まれない。
   前処理・後処理の位置が JUnit 4 とずれ、`@BeforeEach` が失敗するとルールが一切走らない。`base` を呼ばない／
   2 回呼ぶルール（skip 系・retry 系）は使えず、`Timeout` と `DbAccessTestExtension` は併用できない。
-  例外が `RuntimeException` に包まれなくなる（§4.4、§5.1）
+  例外が `RuntimeException` に包まれなくなる（§4.4、§5.1）。intercept メソッドを `final` にするため、
+  自分で override していた利用者はコンパイルエラーになる（§4.5 (5)）
 - **直せなかったもの** — `@TestFactory` / `DynamicTest` にはルールが適用されない。`@Nested` は `support`
   フィールドの持ち方に起因する別課題。どちらもタスク #4 の対象外（§4.4 (6)(7)）
 
@@ -124,8 +124,9 @@ Expected: is <[outer-before, inner-before, test, inner-after, outer-after]>
 1 秒のタイムアウトに対して 2.143 秒かかって BUILD SUCCESS になるのを確かめた。
 **ただしこのクラスはワーキングツリーにも全ブランチの git 履歴にも存在せず**
 （`git log --all --diff-filter=A --name-only` と `find` のいずれでもヒットしない）、再実行で確かめられる出典はない。
-そこでタスク #4 では、解説書の `Timeout` の例が実際にタイムアウトすることを**恒久的なテストとして追加する**（§4.6）。
-それまでは「実測したという記録」であって、読み手が確かめられる事実ではない。
+そこでタスク #4 で、解説書の `Timeout` の例が実際にタイムアウトすることを**恒久的なテストにした**
+（`git show 231eaa9:src/test/java/nablarch/test/junit5/extension/event/TimeoutRuleIntegrationTest.java` の `:77-84`。§4.6）。
+この段落自体は「実測したという記録」であって、読み手が確かめられる事実ではない。
 
 ### 1.2 What goes wrong without this?
 
@@ -159,8 +160,8 @@ Expected: is <[outer-before, inner-before, test, inner-after, outer-after]>
 `@Published(tag = "architect") public class SystemPropertyResource extends ExternalResource` であり、
 `after()`（`:36-39`）でシステムプロパティをテスト実行前の状態に戻す。JUnit 5 の利用者がこれを
 `resolveTestRules()` に渡すと、この復元処理がテスト本体より前に走り、しかも例外にならずテストは通る。
-**NTF が提供している公開 API のルールが、NTF の JUnit 5 拡張の上で黙って壊れる。**
-失敗の仕方が「静かに成功する」であることが最も問題で、利用者は誤った安心を得る。
+**NTF が提供している公開 API のルールが、NTF の JUnit 5 拡張の上で黙って壊れる。失敗の仕方が
+「静かに成功する」であることが最も問題で、利用者は誤った安心を得る。**
 
 ### 1.3 What does reaching it require?
 
@@ -309,39 +310,31 @@ marcphilipp、2021-01-19）。最終リリースは 4.13.2（2021-02-13）。**�
 内訳は **ライフサイクル注釈・ルールが 4 ファイル、表明が 5 ファイル（うち静的 import のみが 4）**。
 
 - **ライフサイクル注釈・ルール（4）** — `nablarch/test/event/TestEventDispatcher`（`@Rule TestName` と
-  `@BeforeClass` / `@Before` / `@After` / `@AfterClass`。`:5-10`）、
-  `nablarch/test/core/db/DbAccessTestSupport`（`@Before` / `@After`。`:15-16`）、
-  `nablarch/test/core/integration/IntegrationTestSupport`（`@Before`。`:9`）、
+  `@BeforeClass` / `@Before` / `@After` / `@AfterClass`。`:5-10`）、`nablarch/test/core/db/DbAccessTestSupport`
+  （`@Before` / `@After`。`:15-16`）、`nablarch/test/core/integration/IntegrationTestSupport`（`@Before`。`:9`）、
   `nablarch/test/SystemPropertyResource`（`extends org.junit.rules.ExternalResource`。`:4`）
-- **表明（5）** — `nablarch/test/Assertion` は `org.junit.Assert` / `org.junit.ComparisonFailure` を
-  `:13-14` で**通常の import**。残る `EntityTestSupport` / `SingleValidationTester` /
-  `ServletForwardVerifier` / `MessagingRequestTestSupport` の 4 ファイルは `org.junit.Assert` の静的 import のみ
+- **表明（5）** — `nablarch/test/Assertion` だけが `org.junit.Assert` / `org.junit.ComparisonFailure` を
+  `:13-14` で通常の import。残る 4 ファイル（`EntityTestSupport` / `SingleValidationTester` /
+  `ServletForwardVerifier` / `MessagingRequestTestSupport`）は `org.junit.Assert` の静的 import のみ
 
 **`beforeEach` の実行経路上にあるスレッド束縛状態**
 
-§4.4 (5) の前提。**調査したのは `DbAccessTestExtension#beforeEach` → `beginTransactions()` →
-`SimpleDbTransactionManager#beginTransaction` という実行経路が通る次の 5 アーティファクトだけである。**
-各 sources jar に対する `grep -rn "ThreadLocal" --include=*.java` の全ヒットを目で見て、コメント・本文中の言及を
-除いた**宣言**の数を数えた（たとえば `nablarch-core` はヒット 3 件のうち `ThreadContext.java:16` と `:45` が
-コメントで、宣言は `:46` の 1 件）。
+§4.4 (5) の機構の説明。**調査したのは `DbAccessTestExtension#beforeEach` → `beginTransactions()` →
+`SimpleDbTransactionManager#beginTransaction` という実行経路が通る 5 アーティファクトだけ**で、
+各 sources jar の `grep -rn "ThreadLocal" --include=*.java` から、コメントを除いた**宣言**を数えた。
+`nablarch-testing` と `nablarch-testing-rest`（ともに 6-NEXT-SNAPSHOT sources）は **0 件**。残る 3 件は次のとおり。
 
-| アーティファクト | `ThreadLocal` の宣言 | 種別 |
-|---|---|---|
-| `nablarch-testing` 6-NEXT-SNAPSHOT sources | **0 件** | — |
-| `nablarch-testing-rest` 6-NEXT-SNAPSHOT sources | **0 件** | — |
-| `nablarch-core` 6-NEXT-SNAPSHOT sources | 1 件 `nablarch/core/ThreadContext.java:45-57` | **`InheritableThreadLocal`**。`childValue` が親のマップを `new HashMap<>(parentValue)` で複製する |
-| `nablarch-core-jdbc` 2.2.0 sources | 1 件 `nablarch/core/db/connection/DbConnectionContext.java:26-32` | 素の `ThreadLocal` |
-| `nablarch-core-transaction` 2.1.0 sources | 1 件 `nablarch/core/transaction/TransactionContext.java:23-28` | 素の `ThreadLocal` |
+| 宣言 | 種別 |
+|---|---|
+| `nablarch-core` 6-NEXT-SNAPSHOT sources `nablarch/core/ThreadContext.java:45-57` | **`InheritableThreadLocal`**。`childValue` が親のマップを `new HashMap<>(parentValue)` で複製する |
+| `nablarch-core-jdbc` 2.2.0 sources `nablarch/core/db/connection/DbConnectionContext.java:26-32` | 素の `ThreadLocal` |
+| `nablarch-core-transaction` 2.1.0 sources `nablarch/core/transaction/TransactionContext.java:23-28` | 素の `ThreadLocal` |
 
 下 2 件は 6-NEXT-SNAPSHOT の sources jar がローカルリポジトリにないため 2.2.0 / 2.1.0 で確認した。
-`ThreadContext` が `InheritableThreadLocal` であることは、子スレッドへ値が引き継がれるという意味で
-§4.4 (5) にとって**有利な事実**（`"Time-limited test"` スレッドでも壊れない）。その裏返しとして、
-**子スレッドで書いた値は親スレッドへ戻らない**（`childValue` は複製であり共有ではない）。
-
-**この 5 つで足りると考える理由は、上記の実行経路に現れる型がこの範囲に収まっているためである。
-ただし `nablarch-testing` は `nablarch-fw-standalone` / `nablarch-fw-web-dbstore` / `nablarch-common-dao` など
-十数個のアーティファクトに依存しており（`nablarch-testing-6-NEXT-SNAPSHOT.pom` の `<dependency>`）、
-そこは調べていない。`ThreadLocal` 以外の手段でスレッドに状態を束縛する経路も調べていない。**
+`ThreadContext` が `InheritableThreadLocal` であることは `"Time-limited test"` スレッドでも壊れないという意味だが、
+その裏返しとして**子スレッドで書いた値は親スレッドへ戻らない**（`childValue` は複製であり共有ではない）。
+**この 5 つで足りると考える理由は上記の実行経路に現れる型がこの範囲に収まるためだが、
+`nablarch-testing` が依存する十数個のアーティファクトも、`ThreadLocal` 以外の束縛手段も調べていない。**
 
 ### 2.2 What binds the solution?
 
@@ -354,11 +347,9 @@ marcphilipp、2021-01-19）。最終リリースは 4.13.2（2021-02-13）。**�
 
 `ExtensionContext` には、これから行われるテストメソッドの呼び出しを表すものがない。
 `javap -p org/junit/jupiter/api/extension/ExtensionContext.class`（`junit-jupiter-api-5.11.0.jar`）が返す
-メソッドは 24 個で、テストメソッドに関するものは `getTestMethod()` / `getRequiredTestMethod()` の 2 つだけ。
-`getTestMethod()` の戻り値は **`java.util.Optional<java.lang.reflect.Method>`**、
-`getRequiredTestMethod()` は `java.lang.reflect.Method` である。いずれにせよ得られるのは
-リフレクションの `Method` にすぎず、JUnit 5 側の呼び出しは `TestMethodTestDescriptor#execute` が
-`invokeTestMethod` を通じて行う（§2.1 の `:138`）ので、
+メソッドは 24 個で、テストメソッドに関するものは `getTestMethod()`（`Optional<Method>`）と
+`getRequiredTestMethod()`（`Method`）の 2 つだけ。いずれも得られるのはリフレクションの `Method` にすぎず、
+JUnit 5 側の呼び出しは `TestMethodTestDescriptor#execute` が `invokeTestMethod` を通じて行う（§2.1 の `:138`）ので、
 拡張が自分で `invoke` してもそれを**置き換えることはできない**。
 
 これが §1.3 の 2 条件が両立しなかった構造的な理由であり、判断2 に選択肢がほぼない理由でもある（§5.2）。
@@ -370,9 +361,8 @@ marcphilipp、2021-01-19）。最終リリースは 4.13.2（2021-02-13）。**�
   （`junit-4.13.1-sources` `org/junit/rules/TestName.java:28`）で `starting(Description)`（`:31-33`）経由でしか
   設定されないため、`apply()` を通すしかない
 - `TestEventDispatcherExtension` はクラス宣言に `@Published(tag = "architect")` が付いている
-  （`TestEventDispatcherExtension.java:33`）。`Published` の定義上、
-  **このクラスの `protected` メソッドはすべて後方互換を保証する公開 API**（§0 の用語表）。
-  `resolveTestRules()` のシグネチャ変更は避ける
+  （`TestEventDispatcherExtension.java:33`）。`Published` の定義上、**このクラスの `public` / `protected` メソッドは
+  すべて後方互換を保証する公開 API**（§0 の用語表、§4.5 (2)）。`resolveTestRules()` のシグネチャ変更は避ける
 - 既存テスト、特に `TestEventDispatcherExtensionLifecycleMethodTest` を壊さない
 
 ### 2.3 未確認事項
@@ -387,12 +377,15 @@ marcphilipp、2021-01-19）。最終リリースは 4.13.2（2021-02-13）。**�
 - `resolveTestRules()` を実際に利用しているプロジェクトの有無と規模
 - 「`getRequiredTestMethod()` が返す `Method` を拡張が自分で `invoke` するとテストが 2 回走る」ことの実測。
   JUnit 5 側の呼び出しが止まらないことは §2.2 のとおり出典があるが、2 回走る様子そのものは観測していない
-- `@RepeatedTest` / `@TestTemplate` でルールが正しく適用されるか。プロトタイプで実測したのは
-  `@ParameterizedTest` だけ。`@RepeatedTest` は `@TestTemplate` の一種なので
-  `interceptTestTemplateMethod` を通るはずだが、実行して確かめてはいない。タスク #4 で検証する
-- `Timeout` と `DbAccessTestExtension` の併用が実際に壊れること（§4.4 (5)）。スレッドが変わることと、
-  素の `ThreadLocal` がテスト本体スレッドから見えないことは実測済みだが、
-  **NTF の DB コネクションを使った組み合わせそのものは実行していない**
+- `Timeout` 成立時に、走り続けるテスト本体と `endTransactions()` が並行実行される競合（§4.4 (5) の末尾）。
+  `afterEach` がテスト本体の終了を待たないことは実測済みだが、**`endTransactions()` との競合そのものは観測していない**
+
+**閉じた未確認事項**
+
+- `@RepeatedTest` / `@TestTemplate` でルールが正しく適用されるか →
+  `git show 231eaa9:src/test/java/nablarch/test/junit5/extension/event/TestRuleEmulationIntegrationTest.java` の
+  `:163-166` で固定した
+- `Timeout` と `DbAccessTestExtension` の併用が実際に壊れること → §4.4 (5) で実測した。§4.6 の恒久テストにも追加する
 
 `@Nested` は最小再現で実測できたので、未確認から外して §4.4 (7) に置いた。
 実測に加えて `git show 8780eb8:src/test/java/nablarch/test/junit5/extension/event/TestRuleEmulationIntegrationTest.java`
@@ -422,8 +415,11 @@ NTF の前処理より後に実行されて困るのは NTF 自身のルール�
 | 要素 | 責務 |
 |---|---|
 | `beforeEach`（`BeforeEachCallback`、既存） | 内部ルールの適用と NTF 前処理の実行。実行位置は現行から変えない |
-| `resolveInternalTestRules()`（新設、**`protected`**） | `TestName` / `TestDescription` を返す。`SimpleRestTestExtension`（別パッケージ）が override して `testDescription` を追加する。`TestEventDispatcherExtension` がクラス単位で `@Published(tag = "architect")` なので、**これは後方互換を保証する公開 API が 1 本増えることを意味する**（§2.2、§4.5 (2)、§5.1） |
-| `interceptTestMethod` / `interceptTestTemplateMethod`（`InvocationInterceptor`、新設） | `resolveTestRules()` が返すルールで `invocation.proceed()` を包む |
+| `resolveInternalTestRules()`（新設、**`protected`**） | `TestName` / `TestDescription` を返す。`SimpleRestTestExtension`（別パッケージ）が override して `testDescription` を追加する |
+| `interceptTestMethod` / `interceptTestTemplateMethod`（`InvocationInterceptor`、新設） | `resolveTestRules()` が返すルールで `invocation.proceed()` を包む。**`final`**（§4.5 (5)） |
+
+`TestEventDispatcherExtension` はクラス単位で `@Published(tag = "architect")` なので、
+**この分割は後方互換を保証する公開 API を 3 本＋interface 1 つ増やす**ことを意味する（§2.2、§4.5 (2)、§5.1）。
 | `resolveTestRules()`（既存。クラスの `@Published` により公開 API） | 利用者がテスト本体を包みたいルールを返す。基底実装は空リストを返すよう変更する（§4.5 (1)） |
 
 ### 3.3 How does work move?
@@ -445,122 +441,48 @@ NTF の前処理より後に実行されて困るのは NTF 自身のルール�
 
 ## 4. Detailed design
 
-**この章は、本セッション内で判断1 の決定より前に作って検証したプロトタイプ（§0 の用語表）に基づく。**
-プロトタイプは取り消してありコミットもしていない。実装はタスク #4 で改めて行う。
+**この章の骨格は、判断1 の決定より前に作って検証したプロトタイプ（§0 の用語表）に由来する。**
+プロトタイプ自体は取り消してありコミットもしていないが、**実装はタスク #4 で完了しており（`0c2047f` / `5b47d2c` /
+`231eaa9`）、§4.1 と §4.6 は実物のコミットを指している。** §4.2 の表だけがプロトタイプ時代の記録である。
 
-### 4.1 変更差分（`src/main` のみ。要約 diff で **+43 / -15 行**）
+### 4.1 変更差分（`src/main` は **+117 / -24 行**）
 
-**この行数は、下の要約 diff の `^+` / `^-` を数えた値そのものである**（追加 43 / 削除 15。読み手が数え直せる）。
-**ただし要約 diff であり、実際の `src/main` の変更はこれより大きい。** 理由は 4 つ。
-(a) 既存 Javadoc `TestEventDispatcherExtension.java:149-168`（実物で 20 行。「親クラスが返したリストに追加する形で
-ルールを追加すること」というコード例を含む）の書き換えが入っていない。そのまま当てると実装と食い違う Javadoc が
-`src/main` に残るため、**タスク #5 で直すことを前提とする**。(b) 新設メソッドの Javadoc を省いてある。
-(c) `interceptTestTemplateMethod` の本体（`interceptTestMethod` と同一の 1 行）を省いてある。
-(d) §4.4 (4) で決めた `convert()` の修正（1 行）が入っていない。
-また `@@` にハンク範囲が入っていないため `git apply` はできない。
-同じ但し書きは、この数字が出てくる §5.1 の「変更範囲」と推奨理由 2 にもかかる。
+**実装はタスク #4 で完了している。** コミット `0c2047f`「fix: 利用者のTestRuleをテストメソッドの実行に適用する」で
+`src/main` の 2 ファイルが変わった。行数は
+`git diff --numstat --ignore-cr-at-eol 8780eb8 231eaa9 -- src/main` の値
+（`TestEventDispatcherExtension.java` +115/-22、`SimpleRestTestExtension.java` +2/-2）。
+`--ignore-cr-at-eol` を付けているのは、`231eaa9`「style: 追加・変更したJavaソースの改行コードをCRLFに統一する」で
+改行コードを揃えており、付けないとファイル全体の置き換えとして数えられるため。**差分の実物は git で読める**ので、
+ここには要点だけを残す。この行数は Javadoc の書き換えを含む実数である
+（以前この節にあった +43/-15 行の要約 diff は、プロトタイプの近似で実装より小さかったため、実装に置き換えて削除した）。
 
-`src/main/java/nablarch/test/junit5/extension/event/TestEventDispatcherExtension.java`
+`TestEventDispatcherExtension`（行番号は `231eaa9` 時点）
 
-```diff
- import org.junit.jupiter.api.extension.ExtensionContext;
-+import org.junit.jupiter.api.extension.InvocationInterceptor;
-+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
- import org.junit.jupiter.api.extension.TestInstancePostProcessor;
-@@
- import java.lang.reflect.Field;
-+import java.lang.reflect.Method;
-@@
-         BeforeEachCallback,
--        AfterEachCallback {
-+        AfterEachCallback,
-+        InvocationInterceptor {
-@@
-     public void beforeEach(ExtensionContext context) throws Exception {
--        emulateTestRules(context);
-+        applyInternalTestRules(context);
-         support.dispatchEventOfBeforeTestMethod();
-     }
- 
-     /**
--     * JUnit4の{@link TestRule}を再現する。
-+     * NTF が内部で使用する{@link TestRule}を適用する。
-      * @param context コンテキスト
-      */
--    private void emulateTestRules(ExtensionContext context) {
--        Description description = convert(context);
--
--        List<TestRule> testRules = resolveTestRules();
--        Statement statement = NOOP_STATEMENT;
--        for (TestRule testRule : testRules) {
--            statement = testRule.apply(statement, description);
--        }
--
-+    private void applyInternalTestRules(ExtensionContext context) {
-+        Statement statement = applyTestRules(resolveInternalTestRules(), NOOP_STATEMENT, context);
-         try {
-             statement.evaluate();
-         } catch (Throwable e) {
-             throw new RuntimeException(e);
-         }
-     }
- 
-+    @Override
-+    public void interceptTestMethod(Invocation<Void> invocation,
-+                                    ReflectiveInvocationContext<Method> invocationContext,
-+                                    ExtensionContext extensionContext) throws Throwable {
-+        applyTestRules(resolveTestRules(), toStatement(invocation), extensionContext).evaluate();
-+    }
-+
-+    ... interceptTestTemplateMethod も本体は同じ（@ParameterizedTest / @RepeatedTest 用。要約のため省略）
-+
-+    private Statement toStatement(Invocation<Void> invocation) {
-+        return new Statement() {
-+            @Override
-+            public void evaluate() throws Throwable {
-+                invocation.proceed();
-+            }
-+        };
-+    }
-+
-+    private Statement applyTestRules(List<TestRule> testRules, Statement base, ExtensionContext context) {
-+        Description description = convert(context);
-+        Statement statement = base;
-+        for (TestRule testRule : testRules) {
-+            statement = testRule.apply(statement, description);
-+        }
-+        return statement;
-+    }
-+
-+    protected List<TestRule> resolveInternalTestRules() {
-+        return Collections.singletonList(support.testName);
-+    }
-+
-@@
-     protected List<TestRule> resolveTestRules() {
--        return Collections.singletonList(support.testName);
-+        return Collections.emptyList();
-     }
-```
+| 変更 | 場所 |
+|---|---|
+| `implements` に `InvocationInterceptor` を追加 | `:43` |
+| `beforeEach` の呼び先を `emulateTestRules` から `applyInternalTestRules` へ | `:117-120` |
+| `applyInternalTestRules` — `resolveInternalTestRules()` を `NOOP_STATEMENT` に適用して `evaluate()` し、例外を `RuntimeException` で包む（従来の `emulateTestRules` から利用者ルールの適用を外したもの） | `:130-138` |
+| **新設** `interceptTestMethod` — `applyTestRules(resolveTestRules(), toStatement(invocation), extensionContext).evaluate()` の 1 行 | `:148-152` |
+| **新設** `interceptTestTemplateMethod` — 本体は `interceptTestMethod` と同一（`@ParameterizedTest` / `@RepeatedTest` 用） | `:166-170` |
+| **新設** `toStatement(Invocation<Void>)` — `invocation.proceed()` を呼ぶだけの `Statement` | `:177-184` |
+| **新設** `applyTestRules(List<TestRule>, Statement, ExtensionContext)` — リストの先頭から順に `apply` する（末尾が最も外側。JUnit 4 の `RunRules` と同じ順序） | `:197-205` |
+| `convert()` が `createTestDescription(Class, String, Annotation...)` を使うよう変更（§4.4 (4)） | `:212-216` |
+| **新設** `protected resolveInternalTestRules()` — `singletonList(support.testName)` を返す（§4.5 (2)） | `:232-234` |
+| `resolveTestRules()` の基底実装を `emptyList()` へ変更（§4.5 (1)） | `:262-264` |
 
-`src/main/java/nablarch/test/junit5/extension/http/SimpleRestTestExtension.java`
+`SimpleRestTestExtension` は override 先を `resolveTestRules()` から `resolveInternalTestRules()` へ変えただけ
+（`231eaa9` の `:30-34`）。
 
-```diff
-     @Override
--    protected List<TestRule> resolveTestRules() {
--        List<TestRule> testRules = new ArrayList<>(super.resolveTestRules());
-+    protected List<TestRule> resolveInternalTestRules() {
-+        List<TestRule> testRules = new ArrayList<>(super.resolveInternalTestRules());
-         testRules.add(((SimpleRestTestSupport) support).testDescription);
-         return testRules;
-     }
-```
+**`231eaa9` の時点で入っていない、決定済みの変更が 1 つある。** `interceptTestMethod` /
+`interceptTestTemplateMethod` を **`final`** にすること（§4.5 (5)）。理由と実測は §4.5 (5) にある。
 
 ### 4.2 実測結果
 
-**まず断っておく。下の表は再実行では確かめられない。** プロトタイプの差分はワーキングツリーから取り消してあり、
-git 履歴にも残っていない。**タスク #4 の実装時に、この表の各行を取り直す。** 以下はすべて JUnit 5.11.0 上で、
-同一セッション内で `mvn -o clean test`（個別行は `-Dtest=<クラス名>`）により実行した（JDK は記録し損ねた。§0 冒頭）。
+**下の表は再実行では確かめられない。** プロトタイプの差分はワーキングツリーから取り消してあり、git 履歴にも残っていない。
+以下はすべて JUnit 5.11.0 上で、同一セッション内で `mvn -o clean test`（個別行は `-Dtest=<クラス名>`）により
+実行した（JDK は記録し損ねた。§0 冒頭）。**同じ主張はタスク #4 で恒久テストに起こしたので（§4.6）、
+この表は「そう実測した」という記録として残すだけでよい。**
 
 | 確認項目 | 修正前 | 修正後 |
 |---|---|---|
@@ -571,27 +493,19 @@ git 履歴にも残っていない。**タスク #4 の実装時に、この表�
 
 **本セッションで実測した最小再現（NTF 非依存）**
 
-上の表が再現できない分を補うため、本文書の作成時に **JUnit 5.11.0 単体**で最小再現を作って走らせた。
-§4.1 と同じ形の Extension —— `interceptTestMethod` の中で、渡されたルールを `invocation.proceed()` に巻いて
-`evaluate()` するだけのもの —— を用意し、ルールと条件を差し替えて実行している。NTF には依存していない。
-
-```
-$ CP=<junit-jupiter-api/engine 5.11.0, junit-platform-{commons,engine,launcher} 1.11.0,
-      opentest4j 1.3.0, apiguardian-api 1.1.2, junit 4.13.1, hamcrest-core 1.3 の jar>
-$ javac -encoding UTF-8 -cp "$CP" -d out Spike.java
-$ java -Dfile.encoding=UTF-8 -cp "$CP:out" <LauncherFactory で 1 クラスずつ実行するランナー>
-```
-
-この仕掛けに、`base` を呼ばない／2 回呼ぶ／`base` の前に例外を投げるルール、`ExternalResource`・
-`TemporaryFolder`・`TestWatcher`・`Stopwatch`・`ExpectedException`・`ErrorCollector`・`Verifier`・`RuleChain`・
-`DisableOnDebug`・`Timeout`、`Timeout` × `ThreadLocal`、`@BeforeEach` / `@AfterEach` が例外を投げる場合、
-アノテーション付きテストメソッド、`@Nested` を持つクラス、`@TestFactory` を順に掛けた。
+上の表が再現できない分を補うため、本文書の作成時に **JUnit 5.11.0 単体**で最小再現を作って走らせた
+（`~/.m2/repository` の jar を `-cp` に並べて `javac` し、`LauncherFactory` で 1 クラスずつ実行。
+`mvn` は使っていない）。実装と同じ形の Extension —— `interceptTestMethod` の中で、渡されたルールを
+`invocation.proceed()` に巻いて `evaluate()` するだけのもの —— に、`base` を呼ばない／2 回呼ぶ／`base` の前に
+例外を投げるルール、`ExternalResource`・`TemporaryFolder`・`TestWatcher`・`Stopwatch`・`ExpectedException`・
+`ErrorCollector`・`Verifier`・`RuleChain`・`DisableOnDebug`・`Timeout`、`Timeout` × `ThreadLocal`、
+`@BeforeEach` / `@AfterEach` が例外を投げる場合、アノテーション付きテストメソッド、`@Nested` を持つクラス、
+`@TestFactory` を順に掛けた。比較用に JUnit 4 側（`JUnitCore`）でも同じ形のテストを走らせている。
 **結果は §1.2 の表（現行実装の側）と §4.4 の一覧・各項目（修正後の側）に、実測値のまま載せてある。**
-比較用に JUnit 4 側（`JUnitCore`）でも同じ形のテストを走らせている。
 
-**この最小再現もリポジトリには残していない。** §4.2 前半と同じ弱点をそのまま持つので、
-**§4.6 で恒久的なテストとして起こす。ただし `@Nested`（§4.4 (7)）と `@TestFactory`（§4.4 (6)）は
-タスク #4 の対象外なので、その 2 つは再現物なしのまま残る。**
+**この最小再現もリポジトリには残していない**が、**§4.6 の恒久テストで置き換えた。`@Nested`（§4.4 (7)）だけは、
+タスク #4 の対象外のため再現物なしのまま残る**（`@TestFactory`（§4.4 (6)）は、対応しない現状を固定する
+特性テストを §4.6 に追加した）。
 
 ### 4.3 既存テストで 1 件だけ落ちる。それは仕様変更そのもの
 
@@ -602,9 +516,7 @@ $ mvn -o clean test
         expected java.lang.RuntimeException to be thrown, but nothing was thrown
 ```
 
-（この出力は同一セッション内でプロトタイプを走らせたときに写したもので、**本文書の作成時には再取得していない。**
-§4.2 前半の表の最終行と同じ実行に対応する。）
-
+（この出力は同一セッション内でプロトタイプを走らせたときに写したもので、**本文書の作成時には再取得していない。**）
 このテストは「`resolveTestRules()` が返したルールが `beforeEach` の中で評価され、そこで起きた例外が
 `RuntimeException` に包まれる」ことを検証している（出典:
 `git show 8780eb8:src/test/java/nablarch/test/junit5/extension/event/TestEventDispatcherExtensionTest.java`
@@ -618,8 +530,9 @@ $ mvn -o clean test
 (4) はタスク #4 で塞ぐので書かない。(7) は 1-A 以前からある別課題。(8) は §6 のとおり解説書には入れない
 （Javadoc には書く）。
 
-**まず、何が使えて何が使えないか。** JUnit 4 が標準で提供する代表的な `TestRule` を §4.1 と同じ形の
-Extension に渡し、JUnit 5.11.0 単体で実行した結果（手順は §4.2 後半）。
+**まず、何が使えて何が使えないか。** JUnit 4 が標準で提供する代表的な `TestRule` を §4.1 の実装と同じ形の
+Extension に渡し、JUnit 5.11.0 単体で実行した結果（手順は §4.2 後半）。**この表は §4.6 の
+`StandardTestRuleIntegrationTest`（8 件）で恒久テストにした。**
 
 | ルール | 結果 | 備考 |
 |---|---|---|
@@ -700,16 +613,59 @@ JUnit 4 では `FrameworkMethod` 由来のメソッドアノテーションが�
 `description.getAnnotation(...)` で挙動を切り替える自作ルール（`ConditionalIgnore` / `@Repeat` 系）は、
 §1.2 が「最も問題」とした「静かに成功する」形で無効化される。
 
-**判断: 直す。** `createTestDescription(Class, String, Annotation...)` のオーバーロード（同 `:85`）に
+**判断: 直す。** `createTestDescription(Class, String, Annotation...)` のオーバーロード（同 `:85-87`）に
 `context.getRequiredTestMethod().getAnnotations()` を渡すだけでよい。同じ最小再現でこの 1 行を入れると
-`anno=true, count=2` になることを確認した。**タスク #4 の対象に含め、§4.6 の恒久テストにも 1 件足す。**
+`anno=true, count=2` になることを確認した。**タスク #4 の対象に含め（`231eaa9` の
+`TestEventDispatcherExtension.java:212-216`）、§4.6 の恒久テストにも足した。**
 
-**(5) `Timeout` と `DbAccessTestExtension` は併用できない（NTF との組み合わせは未実測）。**
+**この差し替えに副作用はない。確認した。** `Description#equals`（`junit-4.13.1-sources`
+`org/junit/runner/Description.java:238-244`）と `hashCode`（`:233-235`）は `fUniqueId` だけを見ており、
+アノテーションは関与しない。`getDisplayName()`（`:183-184`）も無関係。`fUniqueId` は
+`private Description(Class, String, Annotation...)`（`:161-163`）が `displayName` をそのまま渡すため
+`formatDisplayName(name, clazz.getName())`（`:113-115`）と等しい。**アノテーションが 0 個なら、
+2 引数版と 3 引数版は同一の `Description` になる**（`createTestDescription(C, "test")` と
+`createTestDescription(C, "test", new Annotation[0])` を突き合わせ、`equals` / `hashCode` / `getDisplayName` の
+3 つが一致することを Temurin 21.0.11 で実行して確認した）。既存の内部ルールへの影響もない。
+`TestName#starting` は `d.getMethodName()` しか使わず（`org/junit/rules/TestName.java:31-33`）、
+`nablarch-testing-rest` 6-NEXT-SNAPSHOT sources `nablarch/test/core/rule/TestDescription.java:15-19` の
+`starting` も `getTestClass()` と `getMethodName()` しか使わない。
+
+**ただし塞がらないものが 1 つ残る。`@ParameterizedTest` では全 invocation の `Description` が同一になる。**
+`convert()`（`231eaa9` の `:212-216`）が使うのはテストクラスとメソッド名だけで、invocation の番号を持たないため。
+`@ValueSource(ints = {1, 2})` のテストにルールを掛けると、ルールが受け取る `Description` は 2 回とも
+`test(spike.Fprobe$T)` で、`getMethodName()` も 2 回とも `test` だった。JUnit 4 の `Parameterized` は
+同じテストで `test[0](spike.J4Param)` / `test[1](spike.J4Param)` を返す（どちらも本文書の作成時に
+Temurin 21.0.11 で実行して確認した）。**invocation ごとに状態を持つルールは、JUnit 5 側では区別できない。**
+
+**(5) `Timeout` と `DbAccessTestExtension` は併用できない（実測済み）。**
 
 これは §4.4 のなかで最も影響が大きい。**解説書が挙げている唯一の例が `Timeout` である**ため、
-タスク #6 の解説書修正案にも必ず入れる（§6）。**先に断ると、この項の結論は出典から導いた推論であり、
-NTF の DB コネクションを使った組み合わせそのものは実行して確かめていない（§2.3）。**
-下の (a) は sources と実測、(b) は実測、(c) は sources の読解、(d) がそこから導いた推論である。
+タスク #6 の解説書修正案にも必ず入れる（§6）。
+
+**実測結果。** `DbAccessTestExtension` を適用したテストと、`resolveTestRules()` で
+`new Timeout(5000, MILLISECONDS)` を返すよう override したものとを、テスト本体から
+`DbConnectionContext.getConnection()` / `TransactionContext.getTransaction()` を呼んで比べた。
+
+```
+DbAccessTestExtension 単体      -> thread=main  conn=true  tx=true
+DbAccessTestExtension + Timeout -> thread=Time-limited test
+   DbConnectionContext.getConnection() -> IllegalArgumentException:
+       specified database connection name is not register in thread local. connection name = [transaction]
+   TransactionContext.getTransaction() -> IllegalArgumentException:
+       specified transaction name is not register in thread local. transaction name = [transaction]
+```
+
+**どちらのテストも「成功」する。** コネクションが取れないことは例外を握らなければ表に出ないので、
+§1.2 が「最も問題」とした「静かに成功する」形になる。
+
+手順: `231eaa9` の `src/main` を Temurin 21.0.11 の `javac` でコンパイルし、
+`~/.m2/repository` の jar を `-cp` に直接並べ、`LauncherFactory` で 1 クラスずつ実行した
+（`mvn` は使っていない）。`connectionFactory` / `transactionFactory` には本リポジトリの
+`git show 231eaa9:src/test/java/nablarch/test/junit5/extension/db/MockConnectionFactory.java` と
+`MockTransactionFactory.java` をそのまま使った。**この 2 つは既に
+`git show 231eaa9:src/test/resources/unit-test.xml` に登録されており、実 DB も追加設定も要らない。**
+
+下の (a)(b)(c) はその機構の説明、(d) は上の実測そのものである。
 
 (a) **`Timeout` はテスト本体を別スレッドで走らせる。** `apply()` が返す `FailOnTimeout`
 （`junit-4.13.1-sources` `org/junit/rules/Timeout.java:153-155` → `:145-151`）の `evaluate()` が
@@ -727,18 +683,21 @@ NTF の DB コネクションを使った組み合わせそのものは実行し
 （6-NEXT-SNAPSHOT の class を `javap -p -l` で照合すると、`beginTransaction` の `:47` `:48` `:50` `:51` `:52` は
 2.2.0 sources と同じ行に対応していた。）
 
-(d) **したがって、`DbAccessTestExtension` と `Timeout` を併用するとテスト本体から DB コネクションも
-トランザクションも取れない**と考えられる。JUnit 4 のランナーではルールが `@Before` / `@After` ごと包む（§2.1）ため、
+(d) **その結果が上の実測である。** `DbAccessTestExtension` と `Timeout` を併用すると、テスト本体からは
+DB コネクションもトランザクションも取れない。JUnit 4 のランナーではルールが `@Before` / `@After` ごと包む（§2.1）ため、
 トランザクション開始もテスト本体も同じ `"Time-limited test"` スレッドで起きて整合していた。
-さらにタイムアウト成立時、`FailOnTimeout` は `finally` で `thread.join(1)`（1 ミリ秒）しか待たずに抜ける
-（`FailOnTimeout.java:133-138`、判定は `getResult` の `:153-168`）ので、**テスト本体が走ったまま
-`@AfterEach` → `afterEach` → `endTransactions()`（`DbAccessTestExtension.java:25-29`）が並行実行される競合も残る**
-（`afterEach` がテスト本体の終了を待たないことは §4.2 後半で実測した）。
+
+**タイムアウトが実際に成立した場合の競合は、これとは別で、まだ実測していない。** `FailOnTimeout` は
+`finally` で `thread.join(1)`（1 ミリ秒）しか待たずに抜ける（`FailOnTimeout.java:133-138`、判定は
+`getResult` の `:153-168`）ので、**テスト本体が走ったまま `@AfterEach` → `afterEach` →
+`endTransactions()`（`DbAccessTestExtension.java:25-29`）が並行実行される競合が残る**はずである。
+`afterEach` がテスト本体の終了を待たないことは §4.2 後半で実測しているが、
+`endTransactions()` との競合そのものは観測していない（§2.3）。
 
 **この絞り込みが及ぶ範囲。** §2.1 で調べたのは `beforeEach` の実行経路上にある 5 アーティファクトだけで、
-そこには上の 2 つ以外に `ThreadLocal` の宣言がない。**ただし `nablarch-testing` が依存する
-`nablarch-fw-standalone` などは見ておらず、`ThreadLocal` 以外の手段も調べていないので、
-「他にスレッド束縛の状態を残す経路がない」とまでは言えない。**
+そこには上の 2 つ以外に `ThreadLocal` の宣言がない。**壊れること自体は実測済みだが、
+「他にスレッド束縛の状態を残す経路がない」とまでは言えない**（`nablarch-testing` が依存する
+`nablarch-fw-standalone` などは見ておらず、`ThreadLocal` 以外の手段も調べていない）。
 また、**テスト本体が `ThreadContext`（`InheritableThreadLocal`）に書いた値は親スレッドに戻らない**
 という別の制約も生じる（§4.2 後半で実測済み）。なお `TestEventListener` の実装で `beforeTestMethod()` を
 override しているものは NTF 内には存在しない（`grep -rn "beforeTestMethod"` のヒットはインタフェース宣言
@@ -752,33 +711,30 @@ override しているものは NTF 内には存在しない（`grep -rn "beforeT
 
 **(6) `@TestFactory` / `DynamicTest` には適用されない。タスク #4 の対象外とする。**
 
-§4.1 の差分が override するのは `interceptTestMethod` と `interceptTestTemplateMethod` の 2 つだけで、
+実装が override するのは `interceptTestMethod` と `interceptTestTemplateMethod` の 2 つだけで、
 `interceptTestFactoryMethod` / `interceptDynamicTest`（§2.1 の表）は既定実装のまま `invocation.proceed()` を呼ぶ。
 **`@TestFactory` のテストでは利用者のルールが一切適用されず、しかも例外にならず黙って通る。**
 §1.2 が「最も問題」とした「静かに成功する」が、この経路にはそのまま残る。
+**この現状は §4.6 の特性テストで固定する**（「対応する」のではなく「対応していない」ことを記録するテスト）。
 
 **対象外とする理由は実装の難しさではなく意味論の不一致である。`@TestFactory` メソッドを包んでも、
 包まれるのは `Stream<DynamicNode>` の「生成」だけで、動的テストの「実行」は包まれない。**
 出典: `junit-jupiter-engine-5.11.0.jar` の `TestFactoryTestDescriptor` を `javap -p -c -l` で逆アセンブルすると、
 インターセプタが挟まるのは `TestFactoryTestDescriptor.java:97-98` のファクトリメソッド呼び出しだけで、
-動的テストの実行（`:101-111` のループ）はその外側にある。§4.2 後半でも、ファクトリ側のログが
-`factory-before → ファクトリ本体 → factory-after` で閉じ、`proceed()` が返すのが遅延評価の
+動的テストの実行（`:101-111` のループ）はその外側にある。§4.2 後半でも、`proceed()` が返すのが遅延評価の
 `Stream`（`ReferencePipeline$Head`）であることを実測した。
 
-**後から追加するには、先に決めるべきことがある。** `interceptDynamicTest` に渡される `ExtensionContext` では
-`getRequiredTestMethod()` が `PreconditionViolationException` を投げる（§4.2 後半で実測）ので、
-`convert()` とは別に `Description` の作り方を決める必要がある。加えてルールのインスタンスは 1 個しかなく、
-N 件の動的テストに同じインスタンスを N 回 `apply` することになるため、状態を溜めるルールの寿命も
-決めなければならない。本設計はそこまで踏み込まない。
+**後から追加するには、先に決めるべきことが 2 つある。** `interceptDynamicTest` の `ExtensionContext` では
+`getRequiredTestMethod()` が `PreconditionViolationException` を投げる（§4.2 後半で実測）ので `Description` の
+作り方を別に決める必要があること、およびルールのインスタンスは 1 個しかなく N 件の動的テストに N 回 `apply`
+することになるため状態を溜めるルールの寿命を決める必要があること。本設計はそこまで踏み込まない。
 
 **(7) `@Nested` を持つテストクラスでは正しく動かない（1-A 以前からある別課題）。**
 
 `@Nested` クラスを足すと **Extension のインスタンスが外側クラスと入れ子クラスで共有される**
 （JUnit 5.11.0 単体の最小再現で `identityHashCode` の一致を実測）。`postProcessTestInstance`
-（`TestEventDispatcherExtension.java:60-62`）は両方のインスタンスに対して呼ばれるため、
-`support` フィールド（`:58`、代入は `:62`）が後勝ちで上書きされ、ルールが記録するサポートインスタンスと
-テスト本体が参照するものが別になる。
-
+（`TestEventDispatcherExtension.java:60-62`）は両方のインスタンスに対して呼ばれるため、`support` フィールド
+（`:58`、代入は `:62`）が後勝ちで上書きされ、ルールが記録するサポートインスタンスとテスト本体が参照するものが別になる。
 **これは TestRule 再現機構の問題ではなく、`support` フィールドを 1 枠しか持たない設計に起因する。
 1-A 以前から存在する課題であり、1-A を選んだことで受け入れた非互換ではない。**
 よって**タスク #4 の対象外とし**、`support` の持ち方（`ExtensionContext.Store` へ移すなど）は別課題として立てる。
@@ -797,12 +753,27 @@ N 件の動的テストに同じインスタンスを N 回 `apply` すること
 「必ず親クラスの `resolveTestRules()` が返すリストをベースにすること」が事実でなくなり、
 rst:407-408 のコード例（`super.resolveTestRules()` をベースにする）も成り立たなくなる（§6）。
 
-**(2) `protected resolveInternalTestRules()` を新設する。公開 API が 1 本増えることを受け入れる。**
+**(2) `protected resolveInternalTestRules()` を新設する。公開 API が 3 本＋interface 1 つ増えることを受け入れる。**
 
-`TestEventDispatcherExtension` はクラス単位で `@Published(tag = "architect")` なので、
-`protected` メソッドを 1 つ足すことは後方互換を保証する公開 API を 1 つ足すことに等しい（§2.2）。
+`TestEventDispatcherExtension` はクラス宣言に `@Published(tag = "architect")` が付いている
+（`231eaa9` の `TestEventDispatcherExtension.java:36`）。`Published` は
+「クラスの全てのAPIを公開APIとする」「利用者がオーバーライド可能なメソッドも公開APIとする」と定義されている
+（`nablarch-core` 6-NEXT-SNAPSHOT sources `nablarch/core/util/annotation/Published.java:14,16`）。
+**したがって、この変更で増える公開 API は `resolveInternalTestRules()` の 1 本ではない。**
+
+| 増えるもの | 位置づけ |
+|---|---|
+| `protected List<TestRule> resolveInternalTestRules()` | NTF 内部専用（下記）。それでも公開 API |
+| `public void interceptTestMethod(...)` | 本設計の中身そのもの。**`final` にする**（(5)） |
+| `public void interceptTestTemplateMethod(...)` | 同上 |
+| `implements InvocationInterceptor` | **以後この interface を外せない**という約束 |
+
+**`final` にしても公開 API から外れるわけではない。** シグネチャと振る舞いの後方互換は保証し続ける。
+外れるのは「利用者が override できる」という一点だけである（(5)）。
+
 **判断2 のなかで唯一、選択の余地があった点はここである。新設で決定した。ただし「公開 API を増やさない」が
-優先方針になった場合の切り替え先として、下の代替 A を残す。**
+優先方針になった場合の切り替え先として、下の代替 A を残す**（代替 A / 代替 B が減らせるのは
+上の表の 1 行目だけで、残る 3 つはどの案でも増える）。
 
 **このメソッドの位置づけを先に決めておく。** `resolveInternalTestRules()` は **NTF 内部専用
 （`SimpleRestTestExtension` のような NTF 側の Extension が override するためのもの）であり、利用者向け API ではない。**
@@ -812,48 +783,32 @@ rst:407-408 のコード例（`super.resolveTestRules()` をベースにする�
 `resolveTestRules()` へ渡すこと」を明記する。**（この方針の帰結として、§5.1 と §6 でも
 `resolveInternalTestRules()` を利用者向けの移行先としては案内しない。）
 
-**代替案は 2 つある。どちらも公開 API を 1 本も増やさない。**
+**代替案は 2 つある。どちらも `resolveInternalTestRules()` の 1 本を増やさずに済む。**
 
-**代替 A — 内部ルールの適用先を基底の `beforeEach` に固定する。**
-基底の `applyInternalTestRules` は `Collections.singletonList(support.testName)` を直接使い、
-`SimpleRestTestExtension` は自分の `beforeEach`（`SimpleRestTestExtension.java:24-28`。既に override 済み）の中で
-`testDescription` を適用する。
+**代替 A — 内部ルールの適用先を基底の `beforeEach` に固定する。** 基底の `applyInternalTestRules` は
+`Collections.singletonList(support.testName)` を直接使い、`SimpleRestTestExtension` は自分の `beforeEach`
+（`SimpleRestTestExtension.java:24-28`。既に override 済み）の中で、`super.beforeEach(context)` の**前**に
+`testDescription` を適用する。順序の問題は起きない。ただし基底の `convert(ExtensionContext)` は `private` なので
+`SimpleRestTestExtension` 側で `Description` の構築を書き直すことになり、**作り方が基底と派生の 2 か所に散る。**
+また基底側の変更も避けられない（`resolveInternalTestRules()` が消え、`applyInternalTestRules` が固定リストを使う形になる）。
 
-- 順序の問題は起きない。`super.beforeEach(context)` の**前**に `testDescription` を適用すればよい
-- ただし基底の `convert(ExtensionContext)`（`TestEventDispatcherExtension.java:143-147`）は `private` なので、
-  `SimpleRestTestExtension` 側で `Description` の構築を書き直す必要がある。数行だが、
-  **`Description` の作り方が基底と派生の 2 か所に散る**
-- **§4.1 の差分は基底側も変わる。** `resolveInternalTestRules()` が丸ごと消え、
-  `applyInternalTestRules` が固定リストを使う形になる。`SimpleRestTestExtension` 側だけの変更では済まない
+**代替 B — `support` の `@Rule` 付きフィールドを反射で収集する。** JUnit 4 の
+`BlockJUnit4ClassRunner#getTestRules`（`junit-4.13.1-sources` `:434-439`）が `TestClass` の
+`collectAnnotatedMethodValues`（`org/junit/runners/model/TestClass.java:278`）と
+`collectAnnotatedFieldValues`（`:244`）でやっているのと同じことを `support` のクラスに対して行う。
+NTF 側にルールが追加されても追随でき、「次に触る人が `resolveTestRules()` に内部ルールを戻す」事故も起きない。
+**しかし、利用者の独自サポートクラスが宣言した `@Rule` フィールドまで拾ってしまう。** 解説書の例（rst:377-391）の
+`CustomTestSupport` は `@Rule public Timeout timeout` を宣言しており、これが内部ルール側に落ちると
+**まさに直そうとしている不具合が再発する**（しかも利用者は同じ `timeout` を `resolveTestRules()` にも渡すので二重適用になる）。
+パッケージ名で絞り込むことはできるが、利用者のクラス配置を前提にした heuristic になる。
+なお「`Class#getDeclaredFields` は順不同だから採れない」という棄却理由は成り立たない（JUnit 4 自身が
+`TestClass#getSortedDeclaredFields`（同 `:76-80`）で並べ替えている）。棄却の理由は上の 1 点で足りる。
 
-**代替 B — `support` の `@Rule` 付きフィールドを反射で収集する。**
-JUnit 4 の `BlockJUnit4ClassRunner#getTestRules`（`junit-4.13.1-sources` `:434-439`）が
-`TestClass#collectAnnotatedMethodValues`（`org/junit/runners/model/TestClass.java:278`）と
-`collectAnnotatedFieldValues`（`:244`）でやっているのと同じことを、`support` のクラスに対して行う。
-
-- 公開 API を 1 本も増やさず、NTF 側にルールが追加されても追随でき、
-  「次に触る人が `resolveTestRules()` に内部ルールを戻す」事故も起きない
-- **しかし、利用者の独自サポートクラスが宣言した `@Rule` フィールドまで拾ってしまう。**
-  解説書の例（rst:377-391）の `CustomTestSupport` は `@Rule public Timeout timeout` を宣言しており、
-  これが内部ルール側に落ちると**まさに直そうとしている不具合が再発する**（しかも利用者は同じ `timeout` を
-  `resolveTestRules()` にも渡すので二重適用になる）。パッケージ名などで絞り込むことはできるが、
-  利用者のサポートクラスがどこに置かれるかを前提にした heuristic になる
-
-なお **「`Class#getDeclaredFields` は順不同だから採れない」という理由は成り立たない。** 手本にしている
-JUnit 4 自身が `TestClass#scanAnnotatedMembers`（`org/junit/runners/model/TestClass.java:63`）で
-`getSortedDeclaredFields`（`:76-80`。`Arrays.sort(declaredFields, FIELD_COMPARATOR)`）を使い、`:68-69` のコメントに
-「ensuring fields are sorted ... in a deterministic order」と明記している。棄却の理由は上の 2 つ目だけで足りる。
-
-**それでも新設（`resolveInternalTestRules()`）を採る。** 理由は 3 つ。
-
-- 代替 B は不具合を再発させうる（上記）。絞り込みを入れても、その正しさが利用者のパッケージ構成に依存する
-- 代替 A は `Description` の構築が 2 か所に散り、NTF 側にルールが増えるたびに派生 Extension の
-  `beforeEach` を触ることになる
-- 「内部で使うルール」という概念が名前で表れないと、次に触る人が
-  `resolveTestRules()` に内部ルールを戻してしまう。§1.5 と同じ事故の再発を招く
-
-**逆に言えば、公開 API を 1 本も増やしたくないという方針が優先されるなら、代替 A に切り替えてよい。**
-その場合 §4.1 の差分は基底側・`SimpleRestTestExtension` 側の**両方**が変わる。
+**それでも新設（`resolveInternalTestRules()`）を採る。** 理由は 3 つ。(a) 代替 B は不具合を再発させうる。
+(b) 代替 A は `Description` の構築が 2 か所に散り、NTF 側にルールが増えるたびに派生 Extension の `beforeEach` を触ることになる。
+(c) 「内部で使うルール」という概念が名前で表れないと、次に触る人が `resolveTestRules()` に内部ルールを戻してしまう
+（§1.5 と同じ事故の再発）。**公開 API を増やしたくないという方針が優先されるなら代替 A に切り替えてよい。**
+その場合の変更は基底側・`SimpleRestTestExtension` 側の**両方**に及ぶ。
 
 **(3) `skip()` は使わない。**
 
@@ -876,31 +831,104 @@ JUnit 4 自身が `TestClass#scanAnnotatedMembers`（`org/junit/runners/model/Te
 例外の扱いが変わる」ことになる。タスク #5 の Javadoc で両方に明記する。
 **§6 のとおり、解説書には入れない。**
 
-### 4.6 タスク #4 で恒久的なテストとして残すもの
+**(5) `interceptTestMethod` / `interceptTestTemplateMethod` を `final` にする。**
 
-§1.1 実測2 と §4.2 が「再現物なし」になった原因は、確認をスパイク（使い捨てのテストクラス）で行い、
-その場で捨てたこと。同じ主張が二度と出典なしにならないよう、次をタスク #4 で**リポジトリに残るテストとして**追加する。
-**新規は 9 件、既存の流用が 1 件。**
+**理由は、`final` にしないと静かな回帰が起きるからである。** 利用者の Extension が
+`TestEventDispatcherExtension` を継承したうえで自分でも `InvocationInterceptor#interceptTestMethod` を
+override していると、**基底の新実装が覆い隠され、`resolveTestRules()` が返したルールが一言もなく消える。**
 
-| # | 内容 | 対応する記述 | 新規か |
+実測（`~/.m2/repository` の旧 jar `nablarch-testing-junit5-6-NEXT-SNAPSHOT.jar`（`emulateTestRules` 時代のもの。
+`javap -p` で `InvocationInterceptor` を実装していないことを確認済み）と、`231eaa9` の `src/main` を
+`javac` でコンパイルしたものを差し替えて、同じ利用者コードを `LauncherFactory` で実行した）:
+
+```
+利用者コード: resolveTestRules() でルールを 1 本返し、かつ interceptTestMethod を自分で override して
+              invocation.proceed() を呼ぶ Extension
+
+旧: LOG=[rule-before, rule-after, user-intercept-before, test, user-intercept-after]   succeeded=1 failed=0
+新: LOG=[user-intercept-before, test, user-intercept-after]                            succeeded=1 failed=0
+```
+
+**コンパイルも通り、テストも成功する。** ルールが 1 本まるごと消えたことは、どこにも現れない。
+§1.2 が「最も問題」とした「静かに成功する」形そのものである。
+
+**`final` にすると、これがコンパイルエラーに変わる。** 同じ利用者コードを `final` を付けた版に対して
+コンパイルすると `オーバーライドされたメソッドはfinalです` で落ちる（Temurin 21.0.11 の `javac`）。
+**静かな喪失が、ビルド時に必ず気づく失敗になる。**
+
+**互換上の損失はない。** この 2 つのメソッドはタスク #4 で新設したもので、これまで存在しなかった。
+`final` を付けた状態で世に出す限り、「override できていたものができなくなる」利用者は生まれない。
+
+**利用者がやりたいことは、別の Extension クラスで実現できる。** `InvocationInterceptor` を実装した
+独立した Extension クラスを作り、`@ExtendWith({利用者のExtension.class, その割り込み.class})` のように
+併記すればよい。実測すると、ルールと利用者の割り込みが両方効く:
+
+```
+LOG=[rule-before, user-intercept-before, test, user-intercept-after, rule-after]   succeeded=1 failed=0
+```
+
+**このリポジトリの `src/main` には、他に `final` メソッドが 1 つもない**（`231eaa9` の全 23 ファイルを
+grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static final` フィールドと、
+`postProcessTestInstance` / `createSupport` の `final` 引数の 3 か所だけ）。
+**その慣行から外れることは承知のうえで、静かな喪失を防ぐ価値が上回ると判断した。**
+
+タスク #5 の Javadoc に、`final` である理由と、上の「別の Extension クラスとして実装する」逃げ道を書く。
+
+
+### 4.6 タスク #4 で恒久的なテストとして残したもの
+
+§1.1 実測2 と §4.2 が「再現物なし」になった原因は、確認をスパイク（使い捨てのテストクラス）で行い、その場で捨てたこと。
+同じ主張が二度と出典なしにならないよう、タスク #4 で**リポジトリに残るテスト**に起こした。
+
+**`231eaa9` の時点で入っているもの（合わせて 20 件）。**
+出典は `git show 231eaa9 --stat` と `git show 231eaa9:src/test/java/nablarch/test/junit5/extension/event/<クラス名>.java`。
+
+| クラス | 件 | 内容 | 対応する記述 |
 |---|---|---|---|
-| 1 | 解説書 rst:377-391 / rst:395-414 と同じ形で `Timeout` を `resolveTestRules()` に渡し、タイムアウトが実際に発生すること | §1.1 実測2 | 新規 |
-| 2 | `base` を呼ばないルールを渡すと `JUnitException`（`never called invocation`）になること | §4.4 (1) | 新規 |
-| 3 | `base` を 2 回呼ぶルールを渡すと `JUnitException`（`multiple times`）になり、テスト本体は 1 回走っていること | §4.4 (1) | 新規 |
-| 4 | ルールが `base` の前に投げた例外は、`JUnitException` に置き換わらずそのまま伝播すること | §4.4 (1)、§4.5 (4) | 新規 |
-| 5 | `ExternalResource#before()` が `@BeforeEach` の後、`after()` が `@AfterEach` の前に実行されること | §4.4 (2) | 新規 |
-| 6 | `@BeforeEach` が例外を投げると、ルールの `before()` も `after()` も実行されないこと | §4.4 (3) | 新規 |
-| 7 | `Description#getAnnotation(...)` からテストメソッドのアノテーションが取得できること | §4.4 (4) | 新規 |
-| 8 | 素の `ThreadLocal` に `beforeEach` で置いた値が、`Timeout` 配下のテスト本体から見えないこと | §4.4 (5) | 新規 |
-| 9 | `@RepeatedTest` でルールが適用されること | §2.3 の未確認事項の解消 | 新規 |
-| 10 | `@ParameterizedTest` でルールが適用されること | §4.2 | **既存**（`git show 8780eb8:src/test/java/nablarch/test/junit5/extension/event/TestRuleEmulationIntegrationTest.java` の `:162-166`） |
+| `TimeoutRuleIntegrationTest` | 2 | 解説書 rst:377-391 / rst:395-414 と同じ形で `Timeout` を渡すとタイムアウトすること／素の `ThreadLocal` に `beforeEach` で置いた値が `Timeout` 配下のテスト本体から見えないこと | §1.1 実測2、§4.4 (5) |
+| `TestRuleInvocationContractIntegrationTest` | 3 | `base` を呼ばないルール／`base` を 2 回呼ぶルール（テスト本体は 1 回だけ走る）／ルールが `base` の前に投げた例外がそのまま伝播すること | §4.4 (1)、§4.5 (4) |
+| `TestRuleLifecycleIntegrationTest` | 2 | `ExternalResource#before()` が `@BeforeEach` の後・`after()` が `@AfterEach` の前であること／`@BeforeEach` が失敗するとルールの前処理も後処理も走らないこと | §4.4 (2)(3) |
+| `TestRuleDescriptionIntegrationTest` | 2 | `Description` からテストメソッドのアノテーションを取得できること／付いていないアノテーションは取得できないこと | §4.4 (4) |
+| `TestRuleEmulationIntegrationTest` | 3 | `@Test` / `@ParameterizedTest` / `@RepeatedTest` でルールがテスト本体を包むこと | §1.1 実測1、§4.2、§2.3 |
+| `StandardTestRuleIntegrationTest` | 8 | §4.4 冒頭の「動く」一覧表を固定する。`TemporaryFolder` 2 件（一時ファイルがテスト本体から使えテスト後に消える／`@BeforeEach` の時点ではまだ作られていない）・`ExpectedException`・`ErrorCollector`・`Verifier`・`Stopwatch`・`RuleChain`・`DisableOnDebug` | §4.4 の一覧表、§4.4 (2) |
 
-2〜4 は `InvocationInterceptor` の契約に触れる 3 つの形なので、1 クラスにまとめるのが自然。
+補助として、失敗するテストを surefire に拾わせずに実行結果だけを観測する `JupiterEngineRunner`（下記）と、
+ルールを差し替えられる `ConfigurableTestRuleExtension` を置いた。
 
-**`Timeout` × `DbAccessTestExtension` の併用不可（§4.4 (5)）は、恒久テストに追加しない。** (a) DB コネクションを
-実際に張る必要があり統合テスト環境に依存する、(b) 失敗の現れ方（コネクションが取れない）は環境設定の誤りと
-区別しにくくテストが何を守っているのか読み取れなくなる、の 2 つが理由。代わりに原因の機構そのものを 8 番で固定する。
-**その結果 §4.4 (5) の結論は「未実測の推論」のまま残る**（§2.3）ので、解説書の警告文（§6）にもその旨を引き継ぐ。
+**今回のレビューを受けて足すもの。**
+
+- テスト本体が例外を投げたときに、ルールの後処理へ到達し、元の例外が**同一インスタンスのまま**伝播すること（§4.5 (4)）
+- `Timeout` × `DbAccessTestExtension` の併用で、テスト本体から DB コネクションもトランザクションも取れないこと（§4.4 (5)）
+- `@TestFactory` にルールが適用されないこと（§4.4 (6)）。**これは「対応する」テストではなく、対応しない現状を
+  固定する特性テストである。** §4.4 (6) の「タスク #4 の対象外」という判断は変わらない。将来
+  `interceptTestFactoryMethod` / `interceptDynamicTest` に手を入れるとき、このテストが出発点を示す
+
+**`Timeout` × `DbAccessTestExtension` を恒久テストにする。以前の判断を変えた。**
+この節にはかつて「(a) DB コネクションを実際に張る必要があり統合テスト環境に依存する、(b) 失敗の現れ方が
+環境設定の誤りと区別しにくい」という 2 つの除外理由を書いていたが、**どちらも成り立たない。**
+
+- (a) — `git show 231eaa9:src/test/java/nablarch/test/junit5/extension/db/MockConnectionFactory.java` と
+  `MockTransactionFactory.java` が既にあり、`git show 231eaa9:src/test/resources/unit-test.xml` に
+  `connectionFactory` / `transactionFactory` として登録済みで、実 DB も追加設定も要らない
+  （`DbAccessTestExtensionIntegrationTest` と `DbAccessTestExtensionTest` が既にこの経路を通っている）
+- (b) — 実際の失敗は `IllegalArgumentException: specified database connection name is not register in
+  thread local. connection name = [transaction]` という固有のメッセージになるので、環境設定の誤りとは容易に区別できる（§4.4 (5)）
+
+**`JupiterEngineRunner` は `junit-platform-launcher` ベースに置き換える。**
+
+`5b47d2c` で追加した `JupiterEngineRunner`（183 行）は `org.junit.jupiter.engine.JupiterTestEngine` を直接使っている。
+これは JUnit の内部 API である（`junit-jupiter-engine-5.11.0.jar` の `JupiterTestEngine.class` を `javap -v` に掛けると
+`RuntimeVisibleAnnotations` が `org.apiguardian.api.API(status=INTERNAL, since="5.0")`）。
+**§2.3 が「本モジュールが JUnit 6 上で動作するか」を未確認に置いている理由が内部 API 使用そのものなのに、
+テスト側にその依存を増やしていた。**
+
+`junit-platform-launcher` を **test スコープ**で足せば `LauncherFactory` で同じことができ、`LauncherFactory` は
+`API(status=STABLE, since="1.0")`（同じく `javap -v` で確認）。**したがって置き換える方針とした。**
+
+**ただしリスクが 1 つある。** 本モジュールの surefire は 2.22.2 と古く（`pom.xml:101-102`）、
+`junit-platform-launcher` を明示宣言すると surefire 側が持ち込む launcher と衝突しうる。
+**衝突した場合は `JupiterTestEngine` 直叩きに戻し、内部 API に依存していることと戻した理由を
+`JupiterEngineRunner` の Javadoc に明記する。** 置き換えの成否は本文書の作成時点では未確定である。
 
 ## 5. 判断ポイント
 
@@ -932,55 +960,43 @@ JUnit 4 自身が `TestClass#scanAnnotatedMembers`（`org/junit/runners/model/Te
 |---|---|---|---|---|
 | **§1.2 の不具合が直るか** | 直る（§4.2。ただし再現物なし） | 直らない。「動かない」と明示し、記述を撤回する | 直らない。「動かない」と書くだけ | 直る |
 | **JUnit の公表方針との整合** | **逆行する。** JUnit が捨てる方向の機構を、動くように整備する | **沿う。** 移行先を示して縮小する | 中立。現状を説明するだけ | **逆行する。** 直したうえで非推奨にするので、方向としては 1-A と同じ |
-| **公開 API への影響** | ルールの実行位置が変わる（下記の非互換）。`protected resolveInternalTestRules()` が 1 本増える（§4.5 (2)） | `@Deprecated` が付く。内部経路が非推奨 API を通り続ける（下記） | なし | 1-A と同じ + 非推奨マーク |
-| **保守コスト** | **恒久的な制約 6 件（§4.4 (1)(2)(3)(5)(6)(8)）・非対称な例外ポリシー（§4.5 (4)）・後方互換を保証する公開 API 1 本**を抱え続ける | 縮小方向。移行が済めば JUnit 4 の Rule に関する説明は不要になる | 制約は残るが、動かすための機構は増えない | 1-A と同じ。加えて非推奨警告の運用 |
+| **公開 API への影響** | ルールの実行位置が変わる（下記の非互換）。公開 API が **3 本＋interface 1 つ**増える（`resolveInternalTestRules()` / `interceptTestMethod` / `interceptTestTemplateMethod` / `implements InvocationInterceptor`。§4.5 (2)） | `@Deprecated` が付く。内部経路が非推奨 API を通り続ける（下記） | なし | 1-A と同じ + 非推奨マーク |
+| **保守コスト** | **恒久的な制約 6 件（§4.4 (1)(2)(3)(5)(6)(8)）・非対称な例外ポリシー（§4.5 (4)）・後方互換を保証する公開 API 3 本＋interface 1 つ**を抱え続ける | 縮小方向。移行が済めば JUnit 4 の Rule に関する説明は不要になる | 制約は残るが、動かすための機構は増えない | 1-A と同じ。加えて非推奨警告の運用 |
 
-**1-B でも内部経路の扱いを決める必要がある。** 1-B は実装を変えないが、内部経路
-（`testName` / `testDescription` の設定）は `resolveTestRules()` を通ったままで、
-`SimpleRestTestExtension` がそれを override している（`SimpleRestTestExtension.java:31` の宣言と
-`:32` の `super.resolveTestRules()` 呼び出し）。そこへ `@Deprecated` を付けると、
-**本モジュール**のビルドがこの 2 か所で非推奨警告を出す。**ただし警告自体は、override 側に `@Deprecated` を
-1 行足せば宣言側・`super` 呼び出し側とも消える**（Temurin 21.0.11 の `javac -Xlint:deprecation` に、非推奨の
-基底メソッドを override して `super` を呼ぶ最小例を掛けて実測。注釈がないと警告 2 件、付けると 0 件）。
-**分離が要るのは技術上の必然ではなく、内部経路が非推奨 API を通り続けるという意味論の問題である。**
+**1-B でも内部経路の扱いを決める必要があった。** 内部経路（`testName` / `testDescription` の設定）は
+`resolveTestRules()` を通っており、`SimpleRestTestExtension` がそれを override している。そこへ `@Deprecated` を
+付けると本モジュールのビルドが警告を出す（override 側にも `@Deprecated` を 1 行足せば消えることは
+Temurin 21.0.11 の `javac -Xlint:deprecation` で実測した）。**分離が要るのは技術上の必然ではなく、
+内部経路が非推奨 API を通り続けるという意味論の問題である。**
 
-**変更範囲**
+**変更範囲と移行コスト**（1-A の非互換は下の「受け入れた非互換」に書いたので繰り返さない）
 
-- **1-A** — `src/main` は §4.1 の要約 diff で +43/-15 行（**要約 diff の行数。実際の変更は Javadoc の
-  書き換えを含むためこれより大きい**）+ 既存テスト 1 件の書き換え + 新規テスト 9 件（§4.6）
-  + Javadoc（#5）+ 解説書 4 か所（#6。うち 1 か所は新規追加）
-- **1-B** — `@Deprecated` 1 行（+ 内部経路の override 側にも 1 行）+ Javadoc（#5）
-  + 解説書の当該節の書き直し（#6）+ `TestRuleEmulationIntegrationTest` の処遇（下記）
-- **1-C** — Javadoc（#5）+ 解説書 2 か所（#6）+ `TestRuleEmulationIntegrationTest` の処遇（下記）
-- **1-D** — 1-A と同じ + `@Deprecated` 1 行
+- **1-A** — `src/main` +117/-24 行（§4.1）+ 既存テスト 1 件の書き換え + 新規テスト 20 件（§4.6）
+  + Javadoc（#5）+ 解説書 4 か所（#6。うち 1 か所は新規追加）。利用者の移行コストは下記
+- **1-B** — `@Deprecated` 1 行（+ 内部経路の override 側にも 1 行）+ Javadoc（#5）+ 解説書の当該節の書き直し（#6）
+  + `TestRuleEmulationIntegrationTest` の処遇。利用者はルールごとに JUnit 5 の機能へ書き換え
+- **1-C** — Javadoc（#5）+ 解説書 2 か所（#6）+ 同テストの処遇。利用者の移行コストはなし（動きが変わらないため）
+- **1-D** — 1-A と同じ + `@Deprecated` 1 行 + 非推奨警告への対応
 
-**既存利用者の移行コスト**（1-A の分は下の「受け入れた非互換」に書いたので、ここでは繰り返さない）
-
-- **1-B** — ルールごとに JUnit 5 の機能へ書き換え
-- **1-C** — なし（動きは変わらない）
-- **1-D** — 1-A と同じ。加えて非推奨警告への対応
-
-**1-B / 1-C を採った場合、`TestRuleEmulationIntegrationTest` をどうするか。** タスク #1 で追加したこのテスト
-（`8780eb8`）は現行実装に対して FAIL する（§1.1 実測1）。1-B / 1-C では実装が変わらないので、削除するか、
-「ルールはテスト本体を包まない」ことを固定する期待値へ反転させるかのどちらかになる。反転させる場合は
-**現在の壊れた挙動が仕様として固定される**ので、`@Deprecated` を付ける 1-B と組み合わせるのが自然。
+「同テストの処遇」とは、タスク #1 で追加した `TestRuleEmulationIntegrationTest`（`8780eb8`）が現行実装に対して
+FAIL する（§1.1 実測1）ため、1-B / 1-C では削除するか期待値を反転させるかを選ぶことになる、という意味。
+反転させると**現在の壊れた挙動が仕様として固定される**ので、`@Deprecated` を付ける 1-B と組み合わせるのが自然だった。
 
 **「JUnit 4 から離れる」ことにはどれもならない、という点が判断の要。** NTF 本体の
 `TestEventDispatcher#testName` が JUnit 4 の `@Rule TestName` であり、`DbAccessTestSupport` などが
 `@Before` / `@After` を使っている（§2.1）。本モジュールの `junit:junit:4.13.1` は compile スコープで、
 `resolveTestRules()` の存廃とは無関係に残る。JUnit の流れに沿わせる本丸は §5.3 の別課題であって、判断1 ではない。
-上の比較表の「JUnit の公表方針との整合」は、あくまで `resolveTestRules()` という 1 つの機構の向きの話である。
 
 **推奨は 1-A だった。理由は 3 つ。**
 
 1. **1-B / 1-C は不具合を残す。** `ExternalResource` の後処理がテスト本体より前に走る状態は、
    非推奨マークを付けても文書に書いても消えない。移行が済むまで誤った実行順で動き続ける。
    §1.2 のとおり、NTF 自身が公開している `SystemPropertyResource` も対象に含まれる
-2. **コード変更は本モジュールに閉じる。** `src/main` は §4.1 の要約 diff で +43/-15 行、
-   既存テストは 1 件しか落ちず、それは仕様変更そのもの（§4.3）。**ただし要約 diff の行数であり、
-   実際の変更はこれより大きい**（§4.1）。**落ちるのが 1 件だけという点はプロトタイプ実測で、再現物がない**
-   （§4.2）。**またドキュメント変更は閉じない。** タスク #6 は別リポジトリ
-   `nablarch-document` の 4 か所の修正を必要とする（§6）。これはどの選択肢でも同じ
+2. **コード変更は本モジュールに閉じる。** `src/main` は +117/-24 行（§4.1）、
+   既存テストは 1 件しか落ちず、それは仕様変更そのもの（§4.3）。
+   **落ちるのが 1 件だけという点はプロトタイプ実測で、再現物がない**（§4.2）。
+   **またドキュメント変更は閉じない。** タスク #6 は別リポジトリ `nablarch-document` の 4 か所の修正を
+   必要とする（§6）。これはどの選択肢でも同じ
 3. **1-A のあとで 1-B へ進みやすい。** `resolveTestRules()` の意味が「利用者がテスト本体を包みたいルール」に
    定まるので、後から非推奨にする判断がしやすくなる。（**逆向きが不可能なわけではない。** 1-B を選んでも
    `@Deprecated` を外して §4 の差分を入れる道は塞がらない）
@@ -1001,6 +1017,17 @@ JUnit 4 自身が `TestClass#scanAnnotatedMembers`（`org/junit/runners/model/Te
 開くことは §4.5 (2) が自ら退けた道だからである。`resolveTestRules()` を実際に使っているプロジェクトの
 有無は未確認（§2.3）。
 
+**さらに、`interceptTestMethod` / `interceptTestTemplateMethod` を `final` にすること（§4.5 (5)）で、
+コンパイルエラーになる利用者がいる。** `TestEventDispatcherExtension` を継承したうえで自分でも
+`InvocationInterceptor#interceptTestMethod` を override していた Extension は、そのままではコンパイルが通らなくなる。
+**これは意図した非互換である。** `final` にしなければ、同じ利用者のルールが一言もなく消える（§4.5 (5) の実測）。
+移行手順は「割り込み処理を別の Extension クラスへ切り出し、`@ExtendWith` に併記する」こと。
+
+**公開 API の数え方が変わっても、1-A の決定は覆らない。** 増える 3 本のうち 2 本は本設計の実装そのもの、
+残る 1 本は NTF 内部専用で、いずれも `resolveTestRules()` の意味を定める代償として不可避だからである。
+**ただし 1-A の保守コストは当初の見積もりより重い。** 1-B / 1-C との差は「公開 API 1 本」ではなく、
+`implements InvocationInterceptor` を含む 4 つの後方互換の約束である。
+
 ### 5.2 判断2 — 直し方（**要件を満たす形が 1 つしかない。決定済み**）
 
 「テスト本体を包む」ためには `invocation` を引数で受け取る必要があり、それができる拡張ポイントは
@@ -1013,10 +1040,10 @@ JUnit 4 自身が `TestClass#scanAnnotatedMembers`（`org/junit/runners/model/Te
 対応できるのが 3 種類だけで `Timeout` を含まず（§2.1）、解説書が唯一の例に挙げている `Timeout` を救えない。
 そのうえ同モジュールは次のメジャーで削除される。実装量も §4 の差分より大きい。要件を満たさないので採れない。
 
-**唯一選択の余地があったのは §4.5 (2) の 1 点** —— 内部ルール用の `protected` メソッドを新設して
-公開 API を 1 本増やすか、増やさない代替（代替 A / 代替 B）を採るか。**これは新設で決定した。ただし
-「公開 API を増やさない」が優先方針になった場合の切り替え先として代替 A を残してある。**
-そのほかの実装上の細部（(1)(3)(4)）は §4.5 に記録した。
+**唯一選択の余地があったのは §4.5 (2) の 1 点** —— 内部ルール用の `protected` メソッドを新設するか、
+新設しない代替（代替 A / 代替 B）を採るか。**新設で決定した。ただし「公開 API を増やさない」が
+優先方針になった場合の切り替え先として代替 A を残してある。**
+そのほかの実装上の細部（(1)(3)(4)(5)）は §4.5 に記録した。
 
 ### 5.3 判断1 の外にある別課題 — NTF 本体から JUnit 依存を分離する
 
@@ -1028,15 +1055,12 @@ JUnit 4 自身が `TestClass#scanAnnotatedMembers`（`org/junit/runners/model/Te
 からは不要になり、利用者向けに残すかどうかを純粋に方針として決められる。JUnit の流れに沿うのはこれ。
 §5.1 で「非推奨化は §5.3 の結論とセット」と書いたのはこの意味。
 
-**規模感。** §2.1 のとおり、`org.junit` を import しているのは 185 ファイル中 9 ファイルで、
-内訳はライフサイクル注釈・ルールが 4 ファイル、表明が 5 ファイル（うち静的 import のみが 4）。
-
-**技術的な障壁は低いと言える。** 表明側の 5 ファイルは
-`org.junit.Assert` の呼び出しを別の手段（Hamcrest 直呼びなど）に置き換えれば済み、
-`Assertion.java` が `ComparisonFailure` を投げている点だけは代替の型を決める必要がある。
-残る 4 ファイルが本題だが、`SystemPropertyResource` は `ExternalResource` を捨てて素のクラスにできるし、
-`IntegrationTestSupport` は `@Before` が 1 つだけである。**ただしこの規模感は import の分布から見た印象であり、
-実際の分離作業は行っていない（未確認）。**
+**規模感と障壁。** §2.1 のとおり `org.junit` を import しているのは 185 ファイル中 9 ファイル
+（ライフサイクル注釈・ルールが 4、表明が 5）。表明側の 5 ファイルは `org.junit.Assert` の呼び出しを
+別の手段（Hamcrest 直呼びなど）に置き換えれば済み、`Assertion.java` が `ComparisonFailure` を投げている点だけ
+代替の型を決める必要がある。残る 4 ファイルが本題だが、`SystemPropertyResource` は `ExternalResource` を捨てて
+素のクラスにでき、`IntegrationTestSupport` は `@Before` が 1 つだけ。**ただしこの規模感は import の分布から見た
+印象であり、実際の分離作業は行っていない（未確認）。**
 
 ## 6. 解説書の通りになるか（タスク #6 の下ごしらえ）
 
@@ -1052,13 +1076,14 @@ JUnit 4 自身が `TestClass#scanAnnotatedMembers`（`org/junit/runners/model/Te
 | rst:395-414 `CustomTestSupportExtension`（`resolveTestRules()` のオーバーライド）の例 | **要修正。** `:407-408` に `// 2. 親クラスの resolveTestRules() の結果をベースにしてリストを生成する` と `List<TestRule> rules = new ArrayList<>(super.resolveTestRules());` があり、基底実装が空リストを返すようになる（§4.5 (1)）ため成り立たない。`new ArrayList<>()` から始める形に書き換え、コメント 2 を削る |
 | rst:416-418「これにより、JUnit 5のテスト上でもJUnit 4の `TestRule` を再現できるようになる」 | **要修正。** §4.4 の (1)(2)(3)(6) を追記する。すなわち、(a) 包む範囲がテストメソッドのみで `@BeforeEach` / `@AfterEach` を含まないため、**`ExternalResource#before()` は `@BeforeEach` の後、`after()` は `@AfterEach` の前に実行される**こと（`TemporaryFolder` を `@BeforeEach` から使うと `IllegalStateException` になり、`TestWatcher` は `@AfterEach` の失敗を観測できない）、(b) **`@BeforeEach` が失敗するとルールの前処理も後処理も一切走らない**こと、(c) `base` を呼ばないルール・2 回以上呼ぶルール（retry 系）は使えないこと、(d) `@TestFactory` / `DynamicTest` には適用されないこと |
 | rst:420-421「必ず親クラスの `resolveTestRules()` が返すリストをベースにすること。そうしない場合、親クラスで登録している `TestRule` が再現されなくなる」 | **要修正。** 基底実装が空リストを返すようになるため、この理由づけは成り立たなくなる（§4.5 (1)）。あわせて**移行手順**を書く: 「前処理だけのルール（`TestName` / `TestDescription` 相当）をこれまで `resolveTestRules()` に渡していた場合、その実行位置は `@BeforeEach` の後へ移る。`@BeforeEach` からルールが設定した値（`TestName#getMethodName()` 相当）を参照していた場合は、参照側をテストメソッド内へ移すこと」（§5.1 の非互換）。**`resolveInternalTestRules()` は NTF 内部専用なので、移行先としては案内しない**（§4.5 (2)） |
-| （新規）rst:395-414 の直後 | **要追加。** §4.4 (5) の警告。**この節の唯一の例が `Timeout` である以上、これは必須。** `Timeout` はテスト本体を別スレッドで実行するため、`DbAccessTestExtension`（`@DbAccessTest`）と併用するとテスト本体から DB コネクションが取れない。またタイムアウト成立時にテスト本体と後処理が並行実行される。**この警告は出典から導いた推論であり、NTF との組み合わせそのものは未実測**（§4.4 (5)、§2.3）なので、差分案を出すときにその旨をレビュー依頼に添える |
+| （新規）rst:395-414 の直後 | **要追加。** §4.4 (5) の警告。**この節の唯一の例が `Timeout` である以上、これは必須。** `Timeout` はテスト本体を別スレッドで実行するため、`DbAccessTestExtension`（`@DbAccessTest`）と併用するとテスト本体から DB コネクションが取れない。またタイムアウト成立時にテスト本体と後処理が並行実行される。コネクションが取れないことは**実測済み**で、恒久テストにもした（§4.4 (5)、§4.6）。**タイムアウト成立時の並行実行だけは未実測**（§2.3）なので、差分案を出すときにその 1 点だけレビュー依頼に添える |
 
-**例外の扱いの変更（`RuntimeException` に包まれなくなる。§4.5 (4)）は、解説書には入れない。**
-当該節（rst:370-421）に例外の扱いを説明した記述がなく、書かれていない前提が変わっただけだからである。
-Javadoc（タスク #5）には両方のメソッドに明記する。**判断したことを残すためにここに書いておく。**
-同じ理由で **`resolveInternalTestRules()` も解説書には出さない。** NTF 内部専用であり（§4.5 (2)）、
-利用者に開くと §4.5 (4) の非対称な例外ポリシーを公開 API として抱えることになる。
+**例外の扱いの変更（`RuntimeException` に包まれなくなる。§4.5 (4)）と `resolveInternalTestRules()` は、
+解説書には入れない。** 前者は当該節（rst:370-421）に例外の扱いの記述がなく、書かれていない前提が変わっただけだから。
+後者は NTF 内部専用であり（§4.5 (2)）、利用者に開くと非対称な例外ポリシーを公開 API として抱えることになるから。
+どちらも Javadoc（タスク #5）には明記する。**判断したことを残すためにここに書いておく。**
+なお **intercept メソッドを `final` にすること（§4.5 (5)）も解説書には入れない。** 解説書の手順どおりに
+`resolveTestRules()` を override するだけの利用者には影響がなく、影響を受ける利用者はコンパイルエラーで気づくため。
 
 **利用者が書くコードはほとんど変わらない。** 解説書の手順どおりに `resolveTestRules()` をオーバーライドすれば
 `Timeout` は実際にタイムアウトし、`ExternalResource` の後処理はテスト本体の後（ただし `@AfterEach` の前。
