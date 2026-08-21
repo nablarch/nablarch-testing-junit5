@@ -218,15 +218,12 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 # State
 
-- **Status**: paused
-- **Date**: 2026-08-21
-- **Last completed**: #1・#2 は成果物の作成とコミットまで完了、self-check と各レビューが未実施。
-  `/rn:gm` を受けて design.md を改訂（判断ポイントを 2 段階に整理、直し方を検証済み差分として §4 に記載、
-  解説書との一致を §6 に追加）
-- **Next**: design.md §5.1 の判断1（1-A 存続 / 1-B 撤退）をユーザーが決定する
-- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR https://github.com/nablarch/nablarch-testing-junit5/pull/12 。
-  判断2（直し方）は選択肢が存在しないため判断対象外。実装差分は design.md §4.1 に全文があり、
-  プロトタイプで検証済み（§4.2）。プロトタイプはワーキングツリーから戻してあり、`src/main` は未変更。
-  #4 を始めるときは design.md §4.1 の差分をそのまま適用すればよい。
-  未処理: 調査中に公開したアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
-  Artifact ツールに削除の口がないため削除できていない。claude.ai/code/artifacts のギャラリーからユーザーが削除する必要がある。
+(written by /rn:dn, read and reset to this placeholder by /rn:up. `Status` is `paused` while a
+session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
+so only a genuinely suspended session reads `paused`.)
+
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
