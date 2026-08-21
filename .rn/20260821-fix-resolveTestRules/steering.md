@@ -130,7 +130,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Prerequisites**: #3（**1-A 存続 に決定済み**。本タスクはそのまま実施する）
 
-実装差分は design.md §4.1 に全文がある。プロトタイプで検証済み（§4.2）。
+実装差分は design.md §4.1 にある。ただし要約 diff であり、既存 Javadoc の書き換え（#5）は含まない。
+プロトタイプで検証したが再現物は残っていない（§4.2）。
 
 **Steps**:
 
@@ -142,8 +143,9 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
       検証するテストを追加する（#1 のレビューからの申し送り）
 - [ ] 解説書の `Timeout` の例を恒久的なテストとして追加する
       （同じ主張が二度と出典なしにならないようにするため。#2 のレビューからの申し送り）
-- [ ] `Timeout` と `DbAccessTestExtension` / `RestTestExtension` が併用できないことを実測で確認し、
-      design.md §4.4 の記述と一致することを確かめる（#2 の Design レビューからの申し送り）
+- [ ] `Timeout` と `DbAccessTestExtension` が併用できないことを実測で確認し、design.md §4.4(3) の
+      記述と一致することを確かめる（`RestTestExtension` はこの問題を持たない。design.md §4.4(3)）。
+      design.md §4.6 の判断により恒久テストには含めない
 - [ ] `@TestFactory` / `DynamicTest` にルールが適用されないことを仕様として確定させる
       （#2 のレビューからの申し送り。Javadoc への明記は #5）
 - [ ] `TestRuleEmulationIntegrationTest` のクラス Javadoc から
@@ -165,7 +167,7 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 - 複数のルールを登録したときの入れ子順が保たれている（#1 で FAIL として固定済み）
 - ルールが投げた例外が `RuntimeException` に包まれずそのまま伝播する
 - テスト本体が失敗してもルールの後処理に到達し、元の失敗がルールに握り潰されない
-- `Timeout` と DB 系 Extension の併用不可が、実測と design.md §4.4 の記述で一致している
+- `Timeout` と `DbAccessTestExtension` の併用不可が、実測と design.md §4.4(3) の記述で一致している
 - `mvn test` が全件成功する
 
 ### #5: Javadoc を実装と一致させる
@@ -199,7 +201,7 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [ ] `ja/…/JUnit5_Extension.rst:416-418` と `:420-421` の修正差分案を作成する（design.md §6）
+- [ ] design.md §6 が挙げる 4 か所（既存 3 か所の修正 + 新規 1 か所の追加）の修正差分案を作成する
 - [ ] `en/` の対応箇所の修正差分案を作成する
 - [ ] 本リポジトリでは反映できないこと、および反映先を明記する
 - [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
