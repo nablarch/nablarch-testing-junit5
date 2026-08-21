@@ -61,7 +61,7 @@ NTF としての方針判断を含むため、ユーザー（およびそのチ�
 
 - [x] `TestRuleEmulationIntegrationTest` を追加し、ルールの前処理・テスト本体・後処理の実行順を検証する
 - [x] 現行実装で FAIL することを確認する
-- [ ] コミット・プッシュする
+- [x] コミット・プッシュする
 - [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -86,7 +86,7 @@ NTF としての方針判断を含むため、ユーザー（およびそのチ�
 - [x] 経緯（解説書の追加時期と PR #3 の関係、4 年半検知されなかった理由）を整理する
 - [x] JUnit の公式方針とバージョン保守状況を一次情報で確認する
 - [x] 選択肢を洗い出し、判断軸ごとに比較する
-- [ ] コミット・プッシュする
+- [x] コミット・プッシュする
 - [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -206,12 +206,12 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 # State
 
-(written by /rn:dn, read and reset to this placeholder by /rn:up. `Status` is `paused` while a
-session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
-so only a genuinely suspended session reads `paused`.)
-
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-08-21
+- **Last completed**: なし。#1・#2 は成果物の作成とコミットまで完了、self-check と各レビューが未実施
+- **Next**: プランゲートの承認（`/rn:ty`）または修正指示（`/rn:gm`）
+- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR https://github.com/nablarch/nablarch-testing-junit5/pull/12 。
+  改善方針は未確定。`design.md` は案 B（TestRule の適用先を分離する）を採用案として記載しているが、決定は #3 Design sign-off で行う。
+  案 A / 案 C が選ばれた場合は #4〜#6 を差し替える。
+  未処理: 調査中に公開したアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
+  Artifact ツールに削除の口がないため削除できていない。claude.ai/code/artifacts のギャラリーからユーザーが削除する必要がある。
