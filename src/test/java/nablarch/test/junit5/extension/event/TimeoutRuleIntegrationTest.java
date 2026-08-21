@@ -12,7 +12,6 @@ import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +34,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * </p>
  * @author Ito Kiyohito
  */
-public class TimeoutRuleIntegrationTest {
+public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
 
     /**
      * タイムアウト値(ミリ秒)。解説書の例と同じ値を使用する。
@@ -68,8 +67,7 @@ public class TimeoutRuleIntegrationTest {
     static String threadLocalValueInTestMethod;
 
     @AfterEach
-    void tearDown() {
-        ConfigurableTestRuleExtension.clearTestRules();
+    void removeThreadLocal() {
         THREAD_LOCAL.remove();
     }
 
@@ -88,8 +86,7 @@ public class TimeoutRuleIntegrationTest {
 
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(ThreadRecordingTestFixture.class);
 
-        assertThat(summary.getFailures(), is(Collections.emptyList()));
-        assertThat(summary.getTestCount(), is(1));
+        assertThat(summary.getSuccessfulTestCount(), is(1));
         assertThat("beforeEach で束縛した値がテスト本体から見えない",
                 threadLocalValueInTestMethod, is(nullValue()));
         assertThat("テスト本体は beforeEach とは別のスレッドで実行される",
@@ -109,7 +106,7 @@ public class TimeoutRuleIntegrationTest {
     /**
      * 解説書の例と同じ形の、 {@link CustomTestSupport} のルールを再現する Extension。
      */
-    public static class CustomTestSupportExtension extends TestEventDispatcherExtension {
+    static class CustomTestSupportExtension extends TestEventDispatcherExtension {
         @Override
         protected TestEventDispatcher createSupport(Object testInstance, ExtensionContext context) {
             return new CustomTestSupport();
@@ -117,7 +114,7 @@ public class TimeoutRuleIntegrationTest {
 
         @Override
         protected List<TestRule> resolveTestRules() {
-            List<TestRule> testRules = new ArrayList<>();
+            List<TestRule> testRules = new ArrayList<>(super.resolveTestRules());
             testRules.add(((CustomTestSupport) support).timeout);
             return testRules;
         }
@@ -137,7 +134,7 @@ public class TimeoutRuleIntegrationTest {
     /**
      * テスト本体を実行しているスレッドと、そこから見える {@link #THREAD_LOCAL} の値を記録する Extension。
      */
-    public static class ThreadRecordingExtension extends ConfigurableTestRuleExtension {
+    static class ThreadRecordingExtension extends ConfigurableTestRuleExtension {
         @Override
         public void beforeEach(ExtensionContext context) throws Exception {
             super.beforeEach(context);

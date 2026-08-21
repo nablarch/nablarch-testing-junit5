@@ -12,7 +12,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.rules.RunRules;
 import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 import java.util.ArrayList;
@@ -53,39 +52,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class TestRuleEmulationIntegrationTest {
 
     /**
-     * 実行順と実行スレッドを記録する {@link TestRule}。
-     * <p>
-     * {@code base} がテストメソッドの実行を表す {@link Statement} であれば、
-     * {@code base.evaluate()} の前後の記録は、テストメソッドの前後になるはずである。
-     * この前提が満たされているかを実行ログで確かめる。
-     * </p>
-     */
-    static class RecordingRule implements TestRule {
-        private final RecordingSupport support;
-        private final String labelPrefix;
-
-        RecordingRule(RecordingSupport support, String labelPrefix) {
-            this.support = support;
-            this.labelPrefix = labelPrefix;
-        }
-
-        @Override
-        public Statement apply(Statement base, Description description) {
-            return new Statement() {
-                @Override
-                public void evaluate() throws Throwable {
-                    support.record(labelPrefix + "-before");
-                    try {
-                        base.evaluate();
-                    } finally {
-                        support.record(labelPrefix + "-after");
-                    }
-                }
-            };
-        }
-    }
-
-    /**
      * 入れ子になる 2 本の {@link RecordingRule} を持つサポートクラス。
      * <p>
      * 実行ログはこのインスタンスが持つため、テストインスタンスごとに新しいログになる。
@@ -97,8 +63,8 @@ public class TestRuleEmulationIntegrationTest {
         final List<String> executionLog = Collections.synchronizedList(new ArrayList<>());
         final Set<Thread> recordedThreads = Collections.synchronizedSet(new LinkedHashSet<>());
 
-        public final RecordingRule innerRule = new RecordingRule(this, "inner");
-        public final RecordingRule outerRule = new RecordingRule(this, "outer");
+        public final RecordingRule innerRule = new RecordingRule(this::record, "inner");
+        public final RecordingRule outerRule = new RecordingRule(this::record, "outer");
 
         /**
          * テスト本体が実行されたことを記録する。

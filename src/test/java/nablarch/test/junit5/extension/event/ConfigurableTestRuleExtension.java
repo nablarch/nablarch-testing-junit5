@@ -17,6 +17,12 @@ import java.util.List;
  * {@link nablarch.test.junit5.extension.JupiterEngineRunner} で実行する使い方を想定しているため、
  * ルールの受け渡しをクラス変数で行い、テストクラス側には何も持たせないようにしている。
  * </p>
+ * <p>
+ * 適用するルールはクラス変数であり、この Extension を使う全てのテストクラスで共有される。
+ * したがって {@code junit.jupiter.execution.parallel.enabled} を有効にすると、
+ * テストが互いのルールを壊し合う。
+ * 現在は surefire にも {@code junit-platform.properties} にも並列実行の設定が無いため直列に実行される。
+ * </p>
  * @author Ito Kiyohito
  */
 public class ConfigurableTestRuleExtension extends TestEventDispatcherExtension {

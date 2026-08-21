@@ -65,7 +65,7 @@ public class TestRuleDescriptionIntegrationTest {
     /**
      * ルールへ渡された {@link Description} を記録する Extension。
      */
-    public static class DescriptionCapturingExtension extends TestEventDispatcherExtension {
+    static class DescriptionCapturingExtension extends TestEventDispatcherExtension {
         @Override
         protected TestEventDispatcher createSupport(Object testInstance, ExtensionContext context) {
             return new MockTestEventDispatcher();

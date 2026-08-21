@@ -16,20 +16,17 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Verifier;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
-import org.junit.runners.model.Statement;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 /**
  * JUnit 4 が標準で提供する {@link TestRule} を
@@ -42,12 +39,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
  * </p>
  * @author Ito Kiyohito
  */
-public class StandardTestRuleIntegrationTest {
-
-    /**
-     * 実行対象のテストクラスとルールが書き込む実行ログ。
-     */
-    static final List<String> executionLog = Collections.synchronizedList(new ArrayList<>());
+public class StandardTestRuleIntegrationTest extends RuleIntegrationTestBase {
 
     /**
      * 実行対象のテストクラスから参照する {@link TemporaryFolder}。
@@ -64,16 +56,6 @@ public class StandardTestRuleIntegrationTest {
      */
     static long measuredRuntimeNanos;
 
-    @BeforeEach
-    void setUpExecutionLog() {
-        executionLog.clear();
-    }
-
-    @AfterEach
-    void clearTestRules() {
-        ConfigurableTestRuleExtension.clearTestRules();
-    }
-
     @Test
     void TemporaryFolderで作成した一時ファイルがテスト本体から使え_テストの後に削除されることをテスト() {
         temporaryFolder = new TemporaryFolder();
@@ -81,7 +63,7 @@ public class StandardTestRuleIntegrationTest {
 
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(TemporaryFolderTestFixture.class);
 
-        assertThat(summary.getFailures(), is(Collections.emptyList()));
+        assertThat(summary.getSuccessfulTestCount(), is(1));
         assertThat(executionLog, is(Collections.singletonList("file-exists")));
         assertThat("一時フォルダはルールの後処理で削除される",
                 temporaryFolder.getRoot().exists(), is(false));
@@ -101,6 +83,12 @@ public class StandardTestRuleIntegrationTest {
         assertThat(executionLog, is(Collections.emptyList()));
     }
 
+    /**
+     * {@link ExpectedException#none()} は JUnit 4.13.1 で非推奨になっているが、
+     * このテストは「ルールとして渡したときに動くか」を確かめるものであり、
+     * ルールのインスタンスを得る手段が他にないため意図的に使用している。
+     */
+    @SuppressWarnings("deprecation")
     @Test
     void ExpectedExceptionで期待した例外を表明できることをテスト() {
         ExpectedException expectedException = ExpectedException.none();
@@ -110,8 +98,7 @@ public class StandardTestRuleIntegrationTest {
 
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(ThrowingTestFixture.class);
 
-        assertThat(summary.getFailures(), is(Collections.emptyList()));
-        assertThat(summary.getTestCount(), is(1));
+        assertThat(summary.getSuccessfulTestCount(), is(1));
     }
 
     @Test
@@ -155,38 +142,27 @@ public class StandardTestRuleIntegrationTest {
     @Test
     void RuleChainで指定した入れ子の順序が保たれることをテスト() {
         ConfigurableTestRuleExtension.setTestRules(RuleChain
-                .outerRule(new RecordingRule("outer"))
-                .around(new RecordingRule("inner")));
+                .outerRule(recordingRule("outer"))
+                .around(recordingRule("inner")));
 
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(RecordingTestFixture.class);
 
-        assertThat(summary.getFailures(), is(Collections.emptyList()));
+        assertThat(summary.getSuccessfulTestCount(), is(1));
         assertThat(executionLog, is(Arrays.asList(
                 "outer-before", "inner-before", "test", "inner-after", "outer-after")));
     }
 
     @Test
     void DisableOnDebugでラップしたルールがデバッグ実行でない場合に適用されることをテスト() {
-        DisableOnDebug disableOnDebug = new DisableOnDebug(new RecordingRule("rule"));
+        DisableOnDebug disableOnDebug = new DisableOnDebug(recordingRule("rule"));
         Assumptions.assumeFalse(disableOnDebug.isDebugging(),
                 "デバッグ実行中はルールが無効化されるため、適用されることを検証できない");
         ConfigurableTestRuleExtension.setTestRules(disableOnDebug);
 
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(RecordingTestFixture.class);
 
-        assertThat(summary.getFailures(), is(Collections.emptyList()));
+        assertThat(summary.getSuccessfulTestCount(), is(1));
         assertThat(executionLog, is(Arrays.asList("rule-before", "test", "rule-after")));
-    }
-
-    /**
-     * テスト本体が実行されたことだけを記録する、実行対象のテストクラス。
-     */
-    @ExtendWith(ConfigurableTestRuleExtension.class)
-    static class RecordingTestFixture {
-        @Test
-        void test() {
-            executionLog.add("test");
-        }
     }
 
     /**
@@ -255,36 +231,6 @@ public class StandardTestRuleIntegrationTest {
         void tearDown() {
             executionLog.add("@AfterEach");
             throw new IllegalStateException("@AfterEach が失敗した");
-        }
-    }
-
-    /**
-     * 前処理と後処理の実行を記録する {@link TestRule}。
-     */
-    private static class RecordingRule implements TestRule {
-        private final String label;
-
-        /**
-         * 記録するラベルを指定してインスタンスを生成する。
-         * @param label 記録するラベル
-         */
-        private RecordingRule(String label) {
-            this.label = label;
-        }
-
-        @Override
-        public Statement apply(Statement base, Description description) {
-            return new Statement() {
-                @Override
-                public void evaluate() throws Throwable {
-                    executionLog.add(label + "-before");
-                    try {
-                        base.evaluate();
-                    } finally {
-                        executionLog.add(label + "-after");
-                    }
-                }
-            };
         }
     }
 

@@ -8,10 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TestRule;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,36 +23,23 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * </p>
  * @author Ito Kiyohito
  */
-public class TestRuleLifecycleIntegrationTest {
-
-    /**
-     * 実行対象のテストクラスとルールが書き込む実行ログ。
-     */
-    static final List<String> executionLog = Collections.synchronizedList(new ArrayList<>());
-
-    @BeforeEach
-    void setUpExecutionLog() {
-        executionLog.clear();
-        ConfigurableTestRuleExtension.setTestRules(new RecordingExternalResource());
-    }
-
-    @AfterEach
-    void clearTestRules() {
-        ConfigurableTestRuleExtension.clearTestRules();
-    }
+public class TestRuleLifecycleIntegrationTest extends RuleIntegrationTestBase {
 
     @Test
     void ExternalResourceのbeforeはBeforeEachの後に_afterはAfterEachの前に実行されることをテスト() {
+        ConfigurableTestRuleExtension.setTestRules(new RecordingExternalResource());
+
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(LifecycleRecordingFixture.class);
 
-        assertThat(summary.getFailures(), is(Collections.emptyList()));
-        assertThat(summary.getTestCount(), is(1));
+        assertThat(summary.getSuccessfulTestCount(), is(1));
         assertThat(executionLog, is(Arrays.asList(
                 "@BeforeEach", "resource-before", "test", "resource-after", "@AfterEach")));
     }
 
     @Test
     void BeforeEachが失敗した場合はルールの前処理も後処理も実行されないことをテスト() {
+        ConfigurableTestRuleExtension.setTestRules(new RecordingExternalResource());
+
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(FailingBeforeEachFixture.class);
 
         assertThat(summary.getOnlyFailure().getMessage(), is("@BeforeEach が失敗した"));
