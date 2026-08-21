@@ -88,6 +88,22 @@ $ mvn -o clean test -Dtest=DocTimeoutExampleSpikeTest
 - **JUnit 6 への対応。** 本モジュールが JUnit 6 上で動作するかは未検証。§2.1 に未確認事項として記録する。
 - **`@Rule` の自動収集。** 利用者が明示的に `resolveTestRules()` へ渡す方式は変えない。
 
+### 1.5 How did it get this way?
+
+**解説書が書かれた時点では、記述は事実だった。5 日後に実装だけが変わった。**
+
+| 日付 | できごと |
+|---|---|
+| 2022-01-21 | 本モジュール初版 `ad2410b`（PR #2）。`TestRule` を `InvocationInterceptor#interceptTestMethod` に適用しており、ルールはテスト本体を包んでいた |
+| 2022-01-26 | 解説書に当該節が追加される（`nablarch/nablarch-document` `c35a1b1`「JUnit5拡張機能の説明を追加 (#409)」） |
+| 2022-01-31 | `148db9a`（PR #3「TestRuleを再現するタイミングをExtensionのbeforeEachの前に変更」）で適用先が `beforeEach` へ移り、ルールがテスト本体を包まなくなる。解説書は追随していない |
+
+**4 年 7 か月検知されなかった理由は 2 つ。**
+
+1. NTF 自身が使うルールが 2 つとも前処理だけのもので、適用先が移っても壊れなかった（§1.2）
+2. PR #3 が追加した検証が `testName.getMethodName()` の設定だけを見ており、ルールがテスト本体を包むかは
+   対象外だった。出典: `src/test/java/nablarch/test/junit5/extension/event/TestEventDispatcherExtensionTest.java:110-120`
+
 ## 2. Assumptions & Constraints
 
 ### 2.1 What do we take as true?
@@ -121,8 +137,8 @@ JUnit 4 のランナーはこの `Statement` を入れ子に積み上げてテ�
 > i.e. those that do not completely change the overall execution flow of the test.
 
 移行用の `junit-jupiter-migrationsupport` が対応するのは `ExternalResource` / `Verifier` /
-`ExpectedException` の 3 種類のみで、`Timeout` は含まれない。同モジュールは JUnit 6.0.0 で非推奨となり、
-次のメジャーで削除される。
+`ExpectedException` の 3 種類のみで、`Timeout` は含まれない。同モジュールは JUnit 6.0.0 で
+「deprecated for removal」（将来のメジャーでの削除を予告する非推奨）とされた。削除時期は公表されていない。
 
 出典: [migrating-from-junit4.adoc](https://github.com/junit-team/junit-framework/blob/main/documentation/modules/ROOT/pages/migrating-from-junit4.adoc) § Limited JUnit 4 Rule Support
 
@@ -135,11 +151,12 @@ JUnit 4 のランナーはこの `Statement` を入れ子に積み上げてテ�
 | JUnit 6 | 6.1.3 (2026-08-07) | 現行メジャー。Java 17 ベースライン。セキュリティポリシー上のサポート対象 |
 
 公表された EOL 日程は見つからなかった。サポート対象は [SECURITY.md](https://github.com/junit-team/junit-framework/blob/main/SECURITY.md) で
-`6.1.x` と `5.14.x` に限られている。リリース日は GitHub Releases API で取得。
+`6.1.x` と `5.14.x` に限られている。リリース日は GitHub Releases API で取得。JUnit 6 の Java 17 ベースラインは
+[release notes](https://docs.junit.org/current/release-notes/) の "Java 17 and Kotlin 2.1 baseline" による。
 
 **本モジュールの JUnit 依存**
 
-- `junit:junit:4.13.1` を **compile スコープ**で依存（利用者へ推移的に伝播する）。出典: `pom.xml:60-65`
+- `junit:junit:4.13.1` を **compile スコープ**で依存（利用者へ推移的に伝播する）。出典: `pom.xml:57-62`
 - 参照している JUnit 4 の型は `org.junit.rules.TestRule` / `org.junit.runners.model.Statement` /
   `org.junit.runner.Description` の 3 つ
 - **`junit-jupiter-migrationsupport` は使っていない。** JUnit 6 で削除予定なのは同モジュールであり、本モジュールではない
@@ -161,7 +178,9 @@ JUnit 4 のランナーはこの `Statement` を入れ子に積み上げてテ�
 **未確認事項**
 
 - 本モジュールが JUnit 6 上で動作するか（内部 API 使用のため無検証では判断できない）
-- JUnit 6 における `junit-vintage-engine` の削除方針の有無（非推奨になったことは確認済み）
+- JUnit 6 における `junit-vintage-engine` の削除方針の有無。非推奨であることは確認済み
+  （[user guide](https://docs.junit.org/current/user-guide/) "the JUnit Vintage engine is deprecated and
+  should only be used temporarily while migrating tests…"）だが、削除時期の記載は見つからなかった
 - `resolveTestRules()` を実際に利用しているプロジェクトの有無と規模
 
 ### 2.2 What binds the solution?
@@ -191,7 +210,7 @@ JUnit 4 のランナーはこの `Statement` を入れ子に積み上げてテ�
 
 **「TestRule をどこに適用するか」を 1 か所に決めるのをやめ、ルールの性質で適用先を分ける。**
 
-過去の 2 つの実装は、いずれも全部を 1 か所に置いたために §2.2 のトレードオフをそのまま被った。
+過去の 2 つの実装（§1.5）は、いずれも全部を 1 か所に置いたために §2.2 のトレードオフをそのまま被った。
 
 | | TestRule がテスト本体を包むか | NTF 前処理が `@BeforeEach` より先か |
 |---|---|---|
@@ -384,7 +403,7 @@ NTF の前処理より後に実行されて困るのは NTF 自身のルール�
 
 このテストは「`resolveTestRules()` が返したルールが `beforeEach` の中で評価され、
 そこで起きた例外が `RuntimeException` に包まれる」ことを検証している
-（出典: `src/test/java/nablarch/test/junit5/extension/event/TestEventDispatcherExtensionTest.java:121-137`）。
+（出典: `src/test/java/nablarch/test/junit5/extension/event/TestEventDispatcherExtensionTest.java:122-139`）。
 本設計はこの前提そのものを変えるので、テストは `interceptTestMethod` を対象に書き換える。
 
 あわせて **例外の扱いが変わる。** 現行はルールが投げた例外を `RuntimeException` で包むが、
