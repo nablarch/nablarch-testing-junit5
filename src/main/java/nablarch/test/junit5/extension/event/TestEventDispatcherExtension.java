@@ -139,16 +139,23 @@ public abstract class TestEventDispatcherExtension implements
 
     /**
      * {@link #resolveTestRules()}が返す{@link TestRule}で、テストメソッドの実行を包む。
+     * <p>
+     * このメソッドはオーバーライドできない。
+     * オーバーライドすると{@link #resolveTestRules()}が返した{@link TestRule}が、
+     * 何のエラーも起こさないまま適用されなくなるためである。
+     * テストメソッドの実行に独自の処理を挟みたい場合は、
+     * {@link InvocationInterceptor}を実装した別の Extension クラスを作成してテストクラスに適用すること。
+     * </p>
      * @param invocation テストメソッドの実行
-     * @param invocationContext テストメソッドの実行に関する情報
+     * @param invocationContext テストメソッドの実行に関する情報(使用しない)
      * @param extensionContext コンテキスト
      * @throws Throwable テストメソッドまたは{@link TestRule}が例外をスローした場合
      */
     @Override
-    public void interceptTestMethod(Invocation<Void> invocation,
-                                    ReflectiveInvocationContext<Method> invocationContext,
-                                    ExtensionContext extensionContext) throws Throwable {
-        applyTestRules(resolveTestRules(), toStatement(invocation), extensionContext).evaluate();
+    public final void interceptTestMethod(Invocation<Void> invocation,
+                                          ReflectiveInvocationContext<Method> invocationContext,
+                                          ExtensionContext extensionContext) throws Throwable {
+        invokeWrappedInTestRules(invocation, extensionContext);
     }
 
     /**
@@ -157,15 +164,34 @@ public abstract class TestEventDispatcherExtension implements
      * {@code @ParameterizedTest}や{@code @RepeatedTest}のように、
      * {@code @TestTemplate}を用いて実装されたテストはこのメソッドを経由して実行される。
      * </p>
+     * <p>
+     * このメソッドは{@link #interceptTestMethod(Invocation, ReflectiveInvocationContext, ExtensionContext)}
+     * と同じ理由でオーバーライドできない。
+     * </p>
      * @param invocation テストテンプレートメソッドの実行
-     * @param invocationContext テストテンプレートメソッドの実行に関する情報
+     * @param invocationContext テストテンプレートメソッドの実行に関する情報(使用しない)
      * @param extensionContext コンテキスト
      * @throws Throwable テストテンプレートメソッドまたは{@link TestRule}が例外をスローした場合
      */
     @Override
-    public void interceptTestTemplateMethod(Invocation<Void> invocation,
-                                            ReflectiveInvocationContext<Method> invocationContext,
-                                            ExtensionContext extensionContext) throws Throwable {
+    public final void interceptTestTemplateMethod(Invocation<Void> invocation,
+                                                  ReflectiveInvocationContext<Method> invocationContext,
+                                                  ExtensionContext extensionContext) throws Throwable {
+        invokeWrappedInTestRules(invocation, extensionContext);
+    }
+
+    /**
+     * {@link #resolveTestRules()}が返す{@link TestRule}で包んだうえで、テストメソッドの実行を行う。
+     * <p>
+     * テストメソッドとテストテンプレートメソッドで処理は同じであり、
+     * どちらも{@link ReflectiveInvocationContext}を必要としない。
+     * </p>
+     * @param invocation テストメソッドの実行
+     * @param extensionContext コンテキスト
+     * @throws Throwable テストメソッドまたは{@link TestRule}が例外をスローした場合
+     */
+    private void invokeWrappedInTestRules(Invocation<Void> invocation, ExtensionContext extensionContext)
+            throws Throwable {
         applyTestRules(resolveTestRules(), toStatement(invocation), extensionContext).evaluate();
     }
 
@@ -241,6 +267,8 @@ public abstract class TestEventDispatcherExtension implements
      * 後に記述した処理はテストメソッドの後に実行される。<br>
      * ただし、ルールが包むのはテストメソッドの実行だけであり、
      * JUnit 4 とは異なり {@code @BeforeEach} や {@code @AfterEach} は含まれない。
+     * また、 {@code @TestFactory} が生成した {@code DynamicTest} にはルールが適用されない。
+     * この場合、エラーにはならずルールが無いまま実行される。
      * </p>
      * <p>
      * JUnit 4 時代に作成した独自のサポートクラスを移植する場合は、
