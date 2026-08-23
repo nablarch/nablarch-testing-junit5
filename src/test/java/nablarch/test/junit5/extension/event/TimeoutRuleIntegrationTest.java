@@ -32,6 +32,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * {@code beforeEach} を実行したスレッドとは別になることも押さえる。
  * 後者は、テスト本体から素の {@link ThreadLocal} に束縛した値が見えなくなることを意味する。
  * </p>
+ * <p>
+ * このクラスは実行ログも記録用ルールも使わないが、
+ * {@link ConfigurableTestRuleExtension} に設定したルールをテストごとに解除する {@code @AfterEach} を
+ * 得るために {@link RuleIntegrationTestBase} を継承している。
+ * </p>
  * @author Ito Kiyohito
  */
 public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {

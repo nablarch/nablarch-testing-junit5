@@ -33,6 +33,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * DB は {@code unit-test.xml} が登録する {@link MockConnectionFactory} /
  * {@link MockTransactionFactory} を使用するため、実際の DB は必要ない。
  * </p>
+ * <p>
+ * 実行対象のテストクラスから結果を受け取るフィールドはいずれもクラス変数であるため、
+ * {@code junit.jupiter.execution.parallel.enabled} を有効にするとテストが互いの記録を壊し合う。
+ * 現在は surefire にも {@code junit-platform.properties} にも並列実行の設定が無いため直列に実行される。
+ * </p>
  * @author Ito Kiyohito
  */
 public class TimeoutDbAccessIntegrationTest {

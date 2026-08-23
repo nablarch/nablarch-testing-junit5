@@ -1,6 +1,7 @@
 package nablarch.test.junit5.extension.event;
 
 import nablarch.test.event.TestEventDispatcher;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * 振る舞いを変えるルールがあるため、アノテーションが載っていることは
  * テストメソッド名やテストクラスと同様に、ルールが依存する情報である。
  * </p>
+ * <p>
+ * ルールが記録する {@link Description} はクラス変数であるため、
+ * {@code junit.jupiter.execution.parallel.enabled} を有効にするとテストが互いの記録を壊し合う。
+ * 現在は surefire にも {@code junit-platform.properties} にも並列実行の設定が無いため直列に実行される。
+ * </p>
  * @author Ito Kiyohito
  */
 @ExtendWith(TestRuleDescriptionIntegrationTest.DescriptionCapturingExtension.class)
@@ -38,6 +44,11 @@ public class TestRuleDescriptionIntegrationTest {
      * ルールへ渡された {@link Description}。
      */
     static Description capturedDescription;
+
+    @BeforeEach
+    void clearRecords() {
+        capturedDescription = null;
+    }
 
     @Marked
     @Test

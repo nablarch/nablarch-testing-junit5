@@ -52,9 +52,23 @@ public class StandardTestRuleIntegrationTest extends RuleIntegrationTestBase {
     static ErrorCollector errorCollector;
 
     /**
-     * {@link Stopwatch} が計測したテストメソッドの実行時間(ナノ秒)。
+     * {@link Stopwatch} が計測したテストメソッドの実行時間(ナノ秒)。計測されなかった場合は {@code -1}。
      */
     static long measuredRuntimeNanos;
+
+    /**
+     * {@code @BeforeEach} から {@link TemporaryFolder#getRoot()} を呼んだときに発生した例外。
+     * 発生しなかった場合は {@code null}。
+     */
+    static Throwable temporaryFolderFailureInBeforeEach;
+
+    @BeforeEach
+    void clearRecords() {
+        temporaryFolder = null;
+        errorCollector = null;
+        measuredRuntimeNanos = -1L;
+        temporaryFolderFailureInBeforeEach = null;
+    }
 
     @Test
     void TemporaryFolderで作成した一時ファイルがテスト本体から使え_テストの後に削除されることをテスト() {
@@ -69,18 +83,30 @@ public class StandardTestRuleIntegrationTest extends RuleIntegrationTestBase {
                 temporaryFolder.getRoot().exists(), is(false));
     }
 
+    /**
+     * 「{@code @BeforeEach} の時点では作られていない」ことだけを表明すると、
+     * ルールが一切適用されない実装でもテストが成功してしまう(一時フォルダが作られないのは同じであるため)。
+     * そのため {@link RuleChain} で {@link RecordingRule} を併用し、
+     * 同じ実行の中でルールが確かに適用されていることも合わせて表明する。
+     * これにより「適用位置がずれている」と「適用されていない」を区別できる。
+     */
     @Test
-    void TemporaryFolderの一時フォルダはBeforeEachの時点ではまだ作られていないことをテスト() {
+    void TemporaryFolderの一時フォルダはBeforeEachの時点ではまだ作られておらず_ルールの内側で作られることをテスト() {
         temporaryFolder = new TemporaryFolder();
-        ConfigurableTestRuleExtension.setTestRules(temporaryFolder);
+        ConfigurableTestRuleExtension.setTestRules(RuleChain
+                .outerRule(recordingRule("rule"))
+                .around(temporaryFolder));
 
         JupiterEngineRunner.ExecutionSummary summary =
                 JupiterEngineRunner.run(TemporaryFolderInBeforeEachTestFixture.class);
 
-        Throwable failure = summary.getOnlyFailure();
-        assertThat(failure, is(instanceOf(IllegalStateException.class)));
-        assertThat(failure.getMessage(), containsString("the temporary folder has not yet been created"));
-        assertThat(executionLog, is(Collections.emptyList()));
+        assertThat(summary.getSuccessfulTestCount(), is(1));
+        assertThat("一時フォルダは @BeforeEach の後、ルールの前処理で作られる",
+                executionLog, is(Arrays.asList(
+                        "@BeforeEach:root-not-created", "rule-before", "test:root-exists", "rule-after")));
+        assertThat(temporaryFolderFailureInBeforeEach, is(instanceOf(IllegalStateException.class)));
+        assertThat(temporaryFolderFailureInBeforeEach.getMessage(),
+                containsString("the temporary folder has not yet been created"));
     }
 
     /**
@@ -128,7 +154,6 @@ public class StandardTestRuleIntegrationTest extends RuleIntegrationTestBase {
 
     @Test
     void Stopwatchで実行時間を計測できるが_AfterEachの失敗はfailedで観測できないことをテスト() {
-        measuredRuntimeNanos = -1L;
         ConfigurableTestRuleExtension.setTestRules(new RecordingStopwatch());
 
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(FailingAfterEachTestFixture.class);
@@ -178,18 +203,28 @@ public class StandardTestRuleIntegrationTest extends RuleIntegrationTestBase {
     }
 
     /**
-     * {@code @BeforeEach} から {@link #temporaryFolder} を参照する、実行対象のテストクラス。
+     * {@code @BeforeEach} とテスト本体の両方から {@link #temporaryFolder} を参照する、実行対象のテストクラス。
+     * <p>
+     * {@code @BeforeEach} での失敗は記録するだけにしてテストを続行させ、
+     * ルールの内側であるテスト本体では一時フォルダが使えることを実行ログに残す。
+     * </p>
      */
     @ExtendWith(ConfigurableTestRuleExtension.class)
     static class TemporaryFolderInBeforeEachTestFixture {
         @BeforeEach
         void setUp() {
-            temporaryFolder.getRoot();
+            try {
+                temporaryFolder.getRoot();
+                executionLog.add("@BeforeEach:root-exists");
+            } catch (IllegalStateException e) {
+                temporaryFolderFailureInBeforeEach = e;
+                executionLog.add("@BeforeEach:root-not-created");
+            }
         }
 
         @Test
         void test() {
-            executionLog.add("test");
+            executionLog.add(temporaryFolder.getRoot().exists() ? "test:root-exists" : "test:root-not-created");
         }
     }
 

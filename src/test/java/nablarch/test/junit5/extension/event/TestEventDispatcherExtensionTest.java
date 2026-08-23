@@ -11,11 +11,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.List;
 
@@ -166,10 +169,36 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void resolveTestRulesの基底実装は空のリストを返すことをテスト() throws Exception {
-        sut.postProcessTestInstance(this, null);
-
+    void resolveTestRulesの基底実装は空のリストを返すことをテスト() {
         assertThat(sut.resolveTestRules(), is(Collections.emptyList()));
+    }
+
+    /**
+     * {@code intercept} メソッドが{@code final}であることを、リフレクションで表明する。
+     * <p>
+     * この 2 つのメソッドを利用者の Extension がオーバーライドすると、基底の実装が覆い隠され、
+     * {@link TestEventDispatcherExtension#resolveTestRules()} が返した {@link TestRule} が
+     * 何のエラーも起こさないまま適用されなくなる(design.md &sect;4.5 (5))。
+     * {@code final} は、この静かな喪失をコンパイルエラーに変えるために付けたものである。
+     * </p>
+     * <p>
+     * {@code final} を外しても既存のテストは 1 件も落ちないため、
+     * このテストが無いと、次にこのクラスを触る人が{@code final}を外したことに誰も気づけない。
+     * </p>
+     */
+    @Test
+    void TestRuleを適用するinterceptメソッドは_オーバーライドでルールが静かに消えないようfinalであること() throws Exception {
+        Method interceptTestMethod = TestEventDispatcherExtension.class.getDeclaredMethod(
+                "interceptTestMethod",
+                InvocationInterceptor.Invocation.class, ReflectiveInvocationContext.class, ExtensionContext.class);
+        Method interceptTestTemplateMethod = TestEventDispatcherExtension.class.getDeclaredMethod(
+                "interceptTestTemplateMethod",
+                InvocationInterceptor.Invocation.class, ReflectiveInvocationContext.class, ExtensionContext.class);
+
+        assertThat("interceptTestMethod をオーバーライドできると resolveTestRules() のルールが静かに消える",
+                Modifier.isFinal(interceptTestMethod.getModifiers()), is(true));
+        assertThat("interceptTestTemplateMethod をオーバーライドできると resolveTestRules() のルールが静かに消える",
+                Modifier.isFinal(interceptTestTemplateMethod.getModifiers()), is(true));
     }
 
     @Test

@@ -140,11 +140,19 @@ public abstract class TestEventDispatcherExtension implements
     /**
      * {@link #resolveTestRules()}が返す{@link TestRule}で、テストメソッドの実行を包む。
      * <p>
-     * このメソッドはオーバーライドできない。
-     * オーバーライドすると{@link #resolveTestRules()}が返した{@link TestRule}が、
-     * 何のエラーも起こさないまま適用されなくなるためである。
+     * オーバーライドを許すと、{@link #resolveTestRules()}が返した{@link TestRule}が
+     * 何のエラーも起こさないまま適用されなくなるため、このメソッドは{@code final}にしている。
      * テストメソッドの実行に独自の処理を挟みたい場合は、
      * {@link InvocationInterceptor}を実装した別の Extension クラスを作成してテストクラスに適用すること。
+     * </p>
+     * <p>
+     * ただし、別の Extension クラスからは{@link #support}フィールドを参照できない。
+     * JUnit 5 には他の Extension のインスタンスを取得する API が無く、
+     * テストクラスがサポートクラスのインジェクション先フィールドを宣言している場合に限り、
+     * {@link ExtensionContext#getRequiredTestInstance()}経由でそのフィールドから取得できるだけである。
+     * また、別の Extension クラスを{@code @ExtendWith}でこの Extension より後に登録した場合、
+     * その割り込みは{@link #resolveTestRules()}が返した{@link TestRule}の内側で実行される
+     * (登録順を逆にすると外側になる)。
      * </p>
      * @param invocation テストメソッドの実行
      * @param invocationContext テストメソッドの実行に関する情報(使用しない)
@@ -166,7 +174,7 @@ public abstract class TestEventDispatcherExtension implements
      * </p>
      * <p>
      * このメソッドは{@link #interceptTestMethod(Invocation, ReflectiveInvocationContext, ExtensionContext)}
-     * と同じ理由でオーバーライドできない。
+     * と同じ理由で{@code final}にしている。
      * </p>
      * @param invocation テストテンプレートメソッドの実行
      * @param invocationContext テストテンプレートメソッドの実行に関する情報(使用しない)
@@ -274,12 +282,13 @@ public abstract class TestEventDispatcherExtension implements
      * JUnit 4 時代に作成した独自のサポートクラスを移植する場合は、
      * このメソッドをオーバーライドしてサポートクラスで宣言したルールインスタンスを
      * リストにして返却するように実装する。
-     * 基底実装は空のリストを返すため、独自のルールだけを返却すればよい。
+     * 基底実装は空のリストを返すが、将来ルールが追加されたときに取りこぼさないよう、
+     * {@code super.resolveTestRules()}が返すリストをベースにして独自のルールを追加すること。
      * 以下に実装例を示す。
      * </p>
      * <pre>{@code
      * protected List<TestRule> resolveTestRules() {
-     *     List<TestRule> testRules = new ArrayList<>();
+     *     List<TestRule> testRules = new ArrayList<>(super.resolveTestRules());
      *     // 独自の TestRule を追加する
      *     testRules.add(((YourSupport)support).yourTestRule);
      *     return testRules;
