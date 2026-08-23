@@ -268,7 +268,7 @@ marcphilipp、2021-01-19）。最終リリースは 4.13.2（2021-02-13）。**�
   （`:64-68`）で依存。いずれも版は `dependencyManagement` が import する `junit-bom` 5.11.0 から（`:26-32`）
 - **`junit-platform-launcher` を test スコープで依存している**（`pom.xml:71-75`。版は同じく junit-bom 由来で
   1.11.0）。`JupiterEngineRunner` がテストクラスを直接実行するために `c06e4da` で追加したもので（§4.6）、
-  **この 1 つだけは `b2ecc31` に存在しない。行番号は HEAD `273ddd4` 時点である**
+  **この 1 つだけは `b2ecc31` に存在しない。行番号は HEAD `6716f98` 時点である**
 - 参照している JUnit 4 の型は `org.junit.rules.TestRule` / `org.junit.runners.model.Statement` /
   `org.junit.runner.Description` の 3 つ。出典: `grep -rn "org.junit" src/main --include=*.java`
 - **`junit-jupiter-migrationsupport` は使っていない。** JUnit 6 で削除予定なのは同モジュールであり、本モジュールではない
@@ -406,7 +406,7 @@ NTF の前処理より後に実行されて困るのは NTF 自身のルール�
 `src/main` の 2 ファイルが変わった。**行数は基準コミットを添えないと意味を持たない。**
 `git diff --numstat --ignore-cr-at-eol <基準> -- src/main` で数えると、`8780eb8 231eaa9` が **+117 / -24**
 （`TestEventDispatcherExtension.java` +115/-22、`SimpleRestTestExtension.java` +2/-2）、
-`8780eb8 273ddd4`（`49f73f6` の `final` 化まで含む現在の HEAD）が **+145 / -24**。
+`8780eb8 6716f98`（`49f73f6` の `final` 化と `6716f98` の Javadoc 補足まで含む現在の HEAD）が **+153 / -23**。
 `--ignore-cr-at-eol` を付けているのは、`231eaa9`「style: 追加・変更したJavaソースの改行コードをCRLFに統一する」で
 改行コードを揃えており、付けないとファイル全体の置き換えとして数えられるため。いずれも Javadoc の書き換えを
 含む実数である。**タスク #4 の修正は続いているので、この数字を引くときは基準コミットごと引くこと。**
@@ -811,7 +811,7 @@ override していると、**基底の新実装が覆い隠され、`resolveTest
 **したがって互換上の損失はゼロではない。** 変更前の基底（`bc85712`）は `InvocationInterceptor` を実装して
 おらず `interceptTestMethod` も持たなかったが、**利用者が自分で `implements InvocationInterceptor` して
 `interceptTestMethod` を override する**コードは書けた。それが `final` 化後は通らなくなる。確認: `bc85712` と
-HEAD `273ddd4` の `src/main` をそれぞれ `javac` でコンパイルし、上と同じ利用者クラスを両方に対して
+`273ddd4`（当時の HEAD）の `src/main` をそれぞれ `javac` でコンパイルし、上と同じ利用者クラスを両方に対して
 コンパイルしたところ、`bc85712` 側は EXIT=0、HEAD 側は `オーバーライドされたメソッドはfinalです` で EXIT=1
 だった（Temurin 21.0.11）。**受け入れたのはこの非互換であって、「損失がない」のではない。**
 
@@ -840,8 +840,9 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 `postProcessTestInstance` / `createSupport` の `final` 引数の 3 か所だけ）。
 **その慣行から外れることは承知のうえで、静かな喪失を防ぐ価値が上回ると判断した。**
 
-**この変更は `49f73f6` で入った。** タスク #5 の Javadoc に、`final` である理由と、上の「別の Extension
-クラスとして実装する」逃げ道を、**上の 2 つの但し書きつきで**書く。
+**この変更は `49f73f6` で入った。`final` が外れていないことは、`6716f98` で追加したテストが守る（§4.6）。**
+タスク #5 の Javadoc に、`final` である理由と、上の「別の Extension クラスとして実装する」逃げ道を、
+**上の 2 つの但し書きつきで**書く。
 
 ### 4.6 タスク #4 で恒久的なテストとして残したもの
 
@@ -849,8 +850,7 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 同じ主張が二度と出典なしにならないよう、タスク #4 で**リポジトリに残るテスト**に起こした。
 
 **件数は「surefire が収集するテストメソッドの数」で数えてある**（`JupiterEngineRunner` が実行する入れ子の
-フィクスチャクラスは含まない）。**`231eaa9` の時点で入っているもの（合わせて 20 件）。**
-出典は `git show 231eaa9 --stat` と `git show 231eaa9:src/test/java/nablarch/test/junit5/extension/event/<クラス名>.java`。
+フィクスチャクラスは含まない）。**`231eaa9` の時点で入っているもの（合わせて 20 件）。** 出典は `git show 231eaa9 --stat` と `git show 231eaa9:src/test/java/nablarch/test/junit5/extension/event/<クラス名>.java`。
 
 | クラス | 件 | 内容 | 対応する記述 |
 |---|---|---|---|
@@ -859,11 +859,10 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 | `TestRuleLifecycleIntegrationTest` | 2 | `ExternalResource#before()` が `@BeforeEach` の後・`after()` が `@AfterEach` の前であること／`@BeforeEach` が失敗するとルールの前処理も後処理も走らないこと | §4.4 (2)(3) |
 | `TestRuleDescriptionIntegrationTest` | 2 | `Description` からテストメソッドのアノテーションを取得できること／付いていないアノテーションは取得できないこと | §4.4 (4) |
 | `TestRuleEmulationIntegrationTest` | 3 | `@Test` / `@ParameterizedTest` / `@RepeatedTest` でルールがテスト本体を包むこと | §1.1 実測1、§4.2、§2.3 |
-| `StandardTestRuleIntegrationTest` | 8 | §4.4 冒頭の「動く」一覧表を固定する。`TemporaryFolder` 2 件（一時ファイルがテスト本体から使えテスト後に消える／`@BeforeEach` の時点ではまだ作られていない）・`ExpectedException`・`ErrorCollector`・`Verifier`・`Stopwatch`・`RuleChain`・`DisableOnDebug` | §4.4 の一覧表、§4.4 (2) |
+| `StandardTestRuleIntegrationTest` | 8 | §4.4 冒頭の「動く」一覧表を固定する。`TemporaryFolder` 2 件（一時ファイルがテスト本体から使えテスト後に消える／`@BeforeEach` の時点では未作成でルールの前処理で作られる。後者は `6716f98` で補強、下記）・`ExpectedException`・`ErrorCollector`・`Verifier`・`Stopwatch`・`RuleChain`・`DisableOnDebug` | §4.4 の一覧表、§4.4 (2) |
 
-補助として、失敗するテストを surefire に拾わせずに実行結果だけを観測する `JupiterEngineRunner`（下記）と、
-ルールを差し替えられる `ConfigurableTestRuleExtension` を置いた。その後 `09f8934` で、重複したフィクスチャを
-`RuleIntegrationTestBase` と `RecordingRule` に寄せている。
+補助として、失敗するテストを surefire に拾わせずに実行結果だけを観測する `JupiterEngineRunner`（下記）と、ルールを
+差し替えられる `ConfigurableTestRuleExtension` を置いた。その後 `09f8934` で、重複したフィクスチャを `RuleIntegrationTestBase` と `RecordingRule` に寄せている。
 
 **今回のレビューを受けて足したもの**（`8885ac9`「test: TestRuleの未固定だった4つの振る舞いを恒久テストにする」）。
 
@@ -871,59 +870,60 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
   （`TestRuleInvocationContractIntegrationTest` に 1 件追加。同クラスは 4 件になった。§4.5 (4)）
 - `Timeout` × `DbAccessTestExtension` で、テスト本体から DB コネクションもトランザクションも取れないこと
   （`TimeoutDbAccessIntegrationTest` 2 件。`DbAccessTestExtension` 単体との対照つき。§4.4 (5)）
-- `@TestFactory` が生成した動的テストにルールが適用されず、例外にもならないこと
-  （`TestFactoryRuleIntegrationTest` 1 件。§4.4 (6)）。**これは「対応する」テストではなく、対応しない現状を
-  固定する特性テストである。** §4.4 (6) の「タスク #4 の対象外」という判断は変わらない。将来
-  `interceptTestFactoryMethod` / `interceptDynamicTest` に手を入れるとき、このテストが出発点を示す
+- `@TestFactory` が生成した動的テストにルールが適用されず、例外にもならないこと（`TestFactoryRuleIntegrationTest`
+  1 件。§4.4 (6)）。**対応しない現状を固定する特性テストであり、「タスク #4 の対象外」という判断は変わらない。**
+  将来 `interceptTestFactoryMethod` / `interceptDynamicTest` に手を入れるとき、このテストが出発点を示す
 - `RestTestExtension#setUpDb()` の実行時点で `testDescription` が設定済みであること
   （`RestTestExtensionTest` に 1 件追加。§1.3 の条件 2 を固定する）
 
-**`Timeout` × `DbAccessTestExtension` を恒久テストにしたのは、以前の判断を変えた結果である。**
-かつては「(a) 実 DB が要る、(b) 失敗が環境設定の誤りと区別しにくい」という 2 つの理由で除外していたが、
-どちらも成り立たない。(a) — `git show 231eaa9:src/test/java/nablarch/test/junit5/extension/db/MockConnectionFactory.java`
-と `MockTransactionFactory.java` が既にあり `git show 231eaa9:src/test/resources/unit-test.xml` に登録済みで、
-実 DB も追加設定も要らない。(b) — 失敗は `IllegalArgumentException: specified database connection name is not
-register in thread local. connection name = [transaction]` という固有のメッセージになる（§4.4 (5)）。
+**`Timeout` × `DbAccessTestExtension` を恒久テストにしたのは、「(a) 実 DB が要る、(b) 失敗が環境設定の誤りと区別
+しにくい」として除外していた以前の判断を覆した結果である。** (a) — `231eaa9` の `src/test` に
+`db/MockConnectionFactory.java` と `MockTransactionFactory.java` があり `resources/unit-test.xml` に登録済みで、実 DB も
+追加設定も要らない。(b) — 失敗は `IllegalArgumentException: specified database connection name is not register in
+thread local. connection name = [transaction]` という固有のメッセージになる（§4.4 (5)）。
+
+**さらに `6716f98`「test: finalを守るテストを追加し、TestRule統合テストの表明を補強する」で足したもの。**
+
+- **intercept メソッド 2 本が `final` であること**をリフレクションで表明（`TestEventDispatcherExtensionTest.java:190-201`。
+  同クラスは 13 件）。**それまでは `final` を外しても 61 件が全件成功していた**——#4 の QA レビューが変異プローブ 7 種を
+  当て「`final` を外す」だけが 1 件も落ちないことを実測しており（`checks/4.md:187`）、§4.5 (5) が置いた `final` を
+  リポジトリ側が何も守っていなかった。同じ主張が出典なしにならないようにする、という本節の趣旨そのものの穴である
+- `TemporaryFolder` の「`@BeforeEach` の時点では未作成」を、`RuleChain` で記録用ルールを併用して実行ログ全体
+  （`["@BeforeEach:root-not-created", "rule-before", "test:root-exists", "rule-after"]`）を表明する形に補強した
+  （`StandardTestRuleIntegrationTest.java:94-110`）。**「作られていない」だけの表明は、ルールが一切適用されない実装でも成功する。**
+  補強後は「適用位置がずれている」と「適用されていない」を区別できる
 
 **`JupiterEngineRunner` は `junit-platform-launcher` ベースに置き換える。**
 
-`5b47d2c` で追加した `JupiterEngineRunner`（183 行）は `org.junit.jupiter.engine.JupiterTestEngine` を直接使っている。
+`5b47d2c` で追加した `JupiterEngineRunner`（183 行）は `org.junit.jupiter.engine.JupiterTestEngine` を直接使っていた。
 これは JUnit の内部 API である（`junit-jupiter-engine-5.11.0.jar` の `JupiterTestEngine.class` を `javap -v` に掛けると
-`RuntimeVisibleAnnotations` が `org.apiguardian.api.API(status=INTERNAL, since="5.0")`）。
-**§2.3 が「本モジュールが JUnit 6 上で動作するか」を未確認に置いている理由が内部 API 使用そのものなのに、
-テスト側にその依存を増やしていた。**
-
-`junit-platform-launcher` を **test スコープ**で足せば `LauncherFactory` で同じことができる。
+`RuntimeVisibleAnnotations` が `org.apiguardian.api.API(status=INTERNAL, since="5.0")`）。**§2.3 が「本モジュールが
+JUnit 6 上で動作するか」を未確認に置いている理由が内部 API 使用そのものなのに、テスト側にその依存を増やしていた。**
 
 **置き換えは `c06e4da`「build: JupiterEngineRunnerをjunit-platform-launcherベースに置き換える」で完了した。**
 `pom.xml` が `junit-platform-launcher` を test スコープで宣言し（版は junit-bom から。§2.1）、
-`JupiterEngineRunner` は 183 行から 141 行になった（`git show c06e4da:src/test/.../JupiterEngineRunner.java | wc -l`）。
+`JupiterEngineRunner` は 183 行から 141 行になり、さらに `6716f98` で `ExecutionSummary` の未使用メソッド 4 本
+（`getTestCount` / `getAbortedTestCount` / `getSkippedTestCount` / `getFailures`）を削って **102 行**になった
+（`git show <コミット>:src/test/java/nablarch/test/junit5/extension/JupiterEngineRunner.java | wc -l` で確認）。
 
-**内部 API への依存は消えた。** `JupiterEngineRunner.class` と入れ子の
-`JupiterEngineRunner$ExecutionSummary.class`（`target/test-classes`。作り直せば同じものが出る）を
-`javap -v` に掛け、定数プールの `org/junit/**` 参照を数えると、
-**`org/junit/jupiter/engine/*` への参照はゼロ**である。残る参照は `org/junit/platform/launcher/*`
-（`Launcher` / `LauncherDiscoveryRequest` / `TestExecutionListener` / `core/LauncherFactory` /
-`core/LauncherDiscoveryRequestBuilder` / `listeners/SummaryGeneratingListener` /
-`listeners/TestExecutionSummary`）と **`org/junit/platform/engine/*`**（`DiscoverySelector` /
-`discovery/DiscoverySelectors` / `discovery/ClassSelector`）で、後者も公開 API である。
+**内部 API への依存は消えた。** `JupiterEngineRunner.class` と入れ子の `JupiterEngineRunner$ExecutionSummary.class`
+（`target/test-classes`。作り直せば同じものが出る）を `javap -v` に掛け、定数プールの `org/junit/**` 参照を数えると、
+**`org/junit/jupiter/engine/*` への参照はゼロ**である。残るのは `org/junit/platform/launcher/*`（`Launcher` /
+`LauncherDiscoveryRequest` / `TestExecutionListener` / `core/LauncherFactory` / `core/LauncherDiscoveryRequestBuilder` /
+`listeners/SummaryGeneratingListener` / `listeners/TestExecutionSummary`）と **`org/junit/platform/engine/*`**
+（`DiscoverySelector` / `discovery/DiscoverySelectors` / `discovery/ClassSelector`）で、後者も公開 API である。
 
-**ただし置き換え先が全部 STABLE になったわけではない。** `javap -v` でクラス宣言の `@API` を読むと、
-`LauncherFactory` / `Launcher` / `LauncherDiscoveryRequest` / `LauncherDiscoveryRequestBuilder` /
-`TestExecutionListener` / `DiscoverySelectors` / `DiscoverySelector` / `ClassSelector` は **STABLE**、
-`SummaryGeneratingListener` と `TestExecutionSummary` は **MAINTAINED** である。`INTERNAL` は 1 つも残って
-いないので置き換えの目的は達しているが、**「STABLE に置き換えた」と一括りにはできない。**
+**ただし置き換え先が全部 STABLE になったわけではない。** `javap -v` でクラス宣言の `@API` を読むと、上の 10 型のうち
+`SummaryGeneratingListener` と `TestExecutionSummary` の 2 つが **MAINTAINED**、残る 8 つが **STABLE** である。
+`INTERNAL` は 1 つも残っていないので置き換えの目的は達しているが、**「STABLE に置き換えた」と一括りにはできない。**
 
-**懸念していた surefire 2.22.2 との衝突は起きなかった。** 根拠は `target/surefire-reports/` の `TEST-*.xml` を
-集計した **tests 60 / failures 0 / errors 0**。これは**生成時刻 2026-08-21 23:04:31〜36 の実行**の結果で、
-`src/` に触れた最後のコミット `8885ac9`（22:59:14）より後、それ以降のコミット（`3f8497c` / `1b1d2f3` / `273ddd4`）は
-すべて `.rn/` 配下のみを変更している（`git show --stat` で確認）。したがって**この 60 件は `8885ac9` 時点の
-`src/` に対応する。**
+**懸念していた surefire 2.22.2 との衝突は起きなかった。** 根拠は `target/surefire-reports/` の `TEST-*.xml` 27 個を集計した
+**tests 61 / failures 0 / errors 0 / skipped 0**（生成時刻 2026-08-24 08:09:18〜22）。コーディネーターが `mvn -o clean test` を
+実行して `Tests run: 61, Failures: 0, Errors: 0, Skipped: 0` / `BUILD SUCCESS` を得た実行で、`src/` 配下の最終更新は
+2026-08-21 23:27・`git status` はクリーン——**この 61 件は `6716f98` 時点の `src/` に対応する。**
 
-**この数字は今後増える。** `target/` はビルドのたびに作り直されるので上のレポートはもう開けず、また本文書の
-確認後もタスク #4 のテスト追加が続いている。**件数を引くときは、この節を正とし、どのコミット時点かを添えること。**
-**本文書の作成者は `mvn` を実行していない**（別のビルドと `target/` が衝突するため）。上は他のエージェントが
-走らせたビルドの成果物を、生成時刻とコミット時刻を突き合わせたうえで読んだ結果である。
+**`target/` はビルドのたびに作り直される。件数を引くときは、この節を正とし、どのコミット時点かを添えること。**
+**本文書の作成者は `mvn` を実行していない**（別のビルドと `target/` が衝突するため）。上は他のエージェントが走らせたビルドの成果物を自分で集計し直した結果である。
 
 ## 5. 判断ポイント
 
