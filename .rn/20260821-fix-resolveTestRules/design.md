@@ -481,9 +481,9 @@ Extension に渡し、JUnit 5.11.0 単体で実行した結果（手順は §4.2
 | `ExternalResource` | **動く** | `before()` が `@BeforeEach` の**後**、`after()` が `@AfterEach` の**前** → (2) |
 | `TemporaryFolder` | **動く** | 同上。`@BeforeEach` から `getRoot()` を呼ぶと `IllegalStateException` → (2) |
 | `ExpectedException` | **動く** | 期待どおり成功する |
-| `ErrorCollector` | **動く** | 収集したエラーで FAIL する。ただし例外の型は `MultipleFailureException` で、`AssertionError` ではない |
+| `ErrorCollector` | **動く** | 収集したエラーが 2 件以上のとき、FAIL の例外は `MultipleFailureException` になる（1 件なら収集した例外がそのまま伝播する） |
 | `Verifier` | **動く** | `verify()` が投げた例外がそのまま伝播して FAIL する |
-| `TestWatcher` / `Stopwatch` | **動く** | ただし `@AfterEach` の外側にいるため、`@AfterEach` の失敗を `failed()` で観測できない → (2) |
+| `TestWatcher` / `Stopwatch` | **動く** | ただし `@AfterEach` の**内側**で完了するため、`@AfterEach` の失敗を `failed()` で観測できない → (2) |
 | `RuleChain` | **動く** | 入れ子の順序が保たれる |
 | `DisableOnDebug` | **動く** | — |
 | `base` を 2 回以上呼ぶ自作ルール（retry / repeat 系） | **使えない** | `JUnitException` になる → (1) |
@@ -520,7 +520,7 @@ Extension に渡し、JUnit 5.11.0 単体で実行した結果（手順は §4.2
   `resolveTestRules()` に渡して `@BeforeEach` から `getRoot()` を呼ぶと
   `IllegalStateException: the temporary folder has not yet been created` になる。JUnit 4 では `@Before` から使えた
   （同じ最小再現で JUnit 4 側も `JUnitCore` で走らせて確認した）
-- **`TestWatcher` / `Stopwatch`** — `@AfterEach` の外側にいるため、`@AfterEach` が例外を投げてテストが
+- **`TestWatcher` / `Stopwatch`** — `@AfterEach` の**内側**で完了するため、`@AfterEach` が例外を投げてテストが
   FAIL しても `succeeded()` を報告し、`failed()` は呼ばれない
   （`[ext-beforeEach, test, watch-succeeded, watch-finished, @AfterEach-throws, ext-afterEach]`、集計は fail=1）
 
@@ -859,7 +859,7 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 | `TestRuleLifecycleIntegrationTest` | 2 | `ExternalResource#before()` が `@BeforeEach` の後・`after()` が `@AfterEach` の前であること／`@BeforeEach` が失敗するとルールの前処理も後処理も走らないこと | §4.4 (2)(3) |
 | `TestRuleDescriptionIntegrationTest` | 2 | `Description` からテストメソッドのアノテーションを取得できること／付いていないアノテーションは取得できないこと | §4.4 (4) |
 | `TestRuleEmulationIntegrationTest` | 3 | `@Test` / `@ParameterizedTest` / `@RepeatedTest` でルールがテスト本体を包むこと | §1.1 実測1、§4.2、§2.3 |
-| `StandardTestRuleIntegrationTest` | 8 | §4.4 冒頭の「動く」一覧表を固定する。`TemporaryFolder` 2 件（一時ファイルがテスト本体から使えテスト後に消える／`@BeforeEach` の時点では未作成でルールの前処理で作られる。後者は `6716f98` で補強、下記）・`ExpectedException`・`ErrorCollector`・`Verifier`・`Stopwatch`・`RuleChain`・`DisableOnDebug` | §4.4 の一覧表、§4.4 (2) |
+| `StandardTestRuleIntegrationTest` | 8 | §4.4 冒頭の「動く」一覧表を固定する。`TemporaryFolder` 2 件（一時ファイルがテスト本体から使えテスト後に消える／`@BeforeEach` の時点では未作成でルールの前処理で作られる。後者は `6716f98` で補強、下記）・`ExpectedException`・`ErrorCollector`（収集 2 件のケースのみ。1 件のケースは未固定）・`Verifier`・`Stopwatch`・`RuleChain`・`DisableOnDebug` | §4.4 の一覧表、§4.4 (2) |
 
 補助として、失敗するテストを surefire に拾わせずに実行結果だけを観測する `JupiterEngineRunner`（下記）と、ルールを
 差し替えられる `ConfigurableTestRuleExtension` を置いた。その後 `09f8934` で、重複したフィクスチャを `RuleIntegrationTestBase` と `RecordingRule` に寄せている。
