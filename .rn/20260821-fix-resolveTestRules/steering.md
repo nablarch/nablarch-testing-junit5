@@ -135,30 +135,28 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [ ] design.md §4.1 の差分を `src/main` に適用する。**要約 diff なので、同節が挙げる 4 つの省略
+- [x] design.md §4.1 の差分を `src/main` に適用する。**要約 diff なので、同節が挙げる 4 つの省略
       （既存 Javadoc の書き換え・新設メソッドの Javadoc・`interceptTestTemplateMethod` の本体・
       `convert()` の修正）は自分で補う**
-- [ ] design.md §4.4 (4) の `convert()` の修正を入れる
+- [x] design.md §4.4 (4) の `convert()` の修正を入れる
       （`Description` にテストメソッドのアノテーションを載せる。受け入れずに塞ぐと決めた唯一の制約）
-- [ ] `TestEventDispatcherExtensionTest` の「TestRuleエミュレート時に例外が発生した場合〜」を
+- [x] `TestEventDispatcherExtensionTest` の「TestRuleエミュレート時に例外が発生した場合〜」を
       `interceptTestMethod` 対象に書き換える（design.md §4.3）
-- [ ] **design.md §4.6 が挙げるテストを追加する。** 件数と個別の列挙は design.md 側を正とし、
+- [x] **design.md §4.6 が挙げるテストを追加する。** 件数と個別の列挙は design.md 側を正とし、
       ここでは重複させない（レビューを経て件数は増えている）
-- [ ] `Timeout` と `DbAccessTestExtension` が併用できないことを実測で確認し、design.md §4.4 (5) の
+- [x] `Timeout` と `DbAccessTestExtension` が併用できないことを実測で確認し、design.md §4.4 (5) の
       記述と一致することを確かめる（`RestTestExtension` はこの問題を持たない）。
       **恒久テストとして残す**（当初は除外する判断だったが、既存の `MockConnectionFactory` /
       `MockTransactionFactory` で実測できることが分かったため反転した。design.md §4.6）
-- [ ] `@TestFactory` / `DynamicTest`（§4.4 (6)）と `@Nested`（§4.4 (7)）を対象外とする判断を確定させる。
+- [x] `@TestFactory` / `DynamicTest`（§4.4 (6)）と `@Nested`（§4.4 (7)）を対象外とする判断を確定させる。
       §4.4 (7) は 1-A 以前からある別課題であり、非互換の一覧には数えない
-- [ ] `TestRuleEmulationIntegrationTest` のクラス Javadoc から
+- [x] `TestRuleEmulationIntegrationTest` のクラス Javadoc から
       「意図的に失敗する」段落を削除する（#1 の Craft レビューからの申し送り）
-- [ ] `TestRuleEmulationIntegrationTest` の `@author` を、ユーザーが指定した名前に直す
-      （#1 の Craft レビューからの申し送り。回答が得られていない場合はこの時点で再度確認する）
-- [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
+- [x] self-check (OK/NG per completion criterion, record in checks/4.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [x] Design expert review (subagent)
 
 **Completion criteria**:
 
@@ -184,6 +182,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
+- [ ] **`@author` の表記を揃える。** 本セッションで追加したファイルが `Ito Kiyohito`（実装エキスパートが
+      git の author から推測）と `Claude`（#1 で追加）で不揃い。ユーザーの回答を得て統一する
 - [ ] `resolveTestRules()` の Javadoc に **design.md §4.4 の制約 8 点をすべて**明記する
       （解説書には (1)(2)(3)(5)(6) だけを書く。design.md §4.4 冒頭の書き分けに従う）
 - [ ] design.md §4.4 の「どのルールが使えて何が使えないか」の一覧を Javadoc に反映する
