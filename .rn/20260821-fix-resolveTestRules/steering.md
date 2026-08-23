@@ -198,8 +198,9 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
       （利用者が自分で override すると `resolveTestRules()` のルールが静かに消えるため）。
       **代替手段（別の Extension クラスとして `InvocationInterceptor` を実装する）には但し書きが要る** ——
       別 Extension からは基底の `protected support` フィールドに届かない（#4 の Design レビューが実測）
-- [ ] `implements InvocationInterceptor` により、`final` にした 2 本以外に 7 本の default メソッドが
-      `@Published` クラスの override 可能面として開くことを明記する（#4 の Design レビュー）
+- [ ] `implements InvocationInterceptor` により、`final` にした 2 本以外の default メソッドが
+      `@Published` クラスの override 可能面として開くことを明記する
+      （`interceptDynamicTest` の 2 オーバーロードを別に数えて 8 本、名前では 7 種。design.md §4.5 (5)）
 - [ ] `resolveTestRules()` の既存 Javadoc にある「親クラスが返したリストをベースにすること」という
       コード例を、基底実装が空リストを返すようになったことに合わせて書き換える（design.md §4.1 の省略 (a)）
 - [ ] JUnit 5 に同等機能がある場合はそちらを優先する旨を追記する
@@ -211,7 +212,12 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 **Completion criteria**:
 
 - Javadoc の記述と実装の振る舞いが一致している
+- design.md §4.4 の制約 8 点と「どのルールが使えて何が使えないか」が Javadoc から読み取れる
 - 再現できない範囲が、再現できないという事実と理由の両方とともに書かれている
+- `resolveInternalTestRules()` が NTF 内部専用であることが Javadoc から明確に読み取れる
+- `@author` の表記がリポジトリ内で揃っている
+- `javadoc` の生成で、本セッションの変更に起因する新規の警告が出ない
+- `mvn test` が全件成功する（Javadoc の変更で振る舞いを変えていないこと）
 
 ### #6: 解説書の修正差分案を作成する
 
