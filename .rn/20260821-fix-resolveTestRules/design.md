@@ -337,12 +337,10 @@ JUnit 5 側の呼び出しは `TestMethodTestDescriptor#execute` が `invokeTest
 - `resolveTestRules()` を実際に利用しているプロジェクトの有無と規模
 - 「`getRequiredTestMethod()` が返す `Method` を拡張が自分で `invoke` するとテストが 2 回走る」ことの実測。
   JUnit 5 側の呼び出しが止まらないことは §2.2 のとおり出典があるが、2 回走る様子そのものは観測していない
-- `Timeout` 成立時に、走り続けるテスト本体と `endTransactions()` が並行実行される競合（§4.4 (5) の末尾）。
-  `afterEach` がテスト本体の終了を待たないことは実測済みだが、**`endTransactions()` との競合そのものは観測していない**
 
 **閉じた未確認事項** — `@RepeatedTest` / `@TestTemplate` でルールが適用されるか
 （`git show 231eaa9:src/test/java/nablarch/test/junit5/extension/event/TestRuleEmulationIntegrationTest.java`
-の `:163-166` で固定した）、`Timeout` と `DbAccessTestExtension` の併用が壊れること（§4.4 (5) で実測し §4.6 で恒久化）。
+の `:163-166` で固定した）、`Timeout` と `DbAccessTestExtension` の併用が壊れること（§4.4 (5) で実測し §4.6 で恒久化）、`Timeout` 成立時にテスト本体と後処理が並行実行されるか（§4.4 (5) で最小再現により実測。割り込みに反応しない本体の場合に限り並行になる）。
 `@Nested` は最小再現で実測でき、加えて `git show 8780eb8:.../TestRuleEmulationIntegrationTest.java` の
 クラス Javadoc（`:51-55`）という一次情報もあるので、未確認から外して §4.4 (7) に置いた。
 
@@ -635,12 +633,12 @@ DbAccessTestExtension + Timeout -> thread=Time-limited test
 DB コネクションもトランザクションも取れない。JUnit 4 のランナーではルールが `@Before` / `@After` ごと包む（§2.1）ため、
 トランザクション開始もテスト本体も同じ `"Time-limited test"` スレッドで起きて整合していた。
 
-**タイムアウトが実際に成立した場合の競合は、これとは別で、まだ実測していない。** `FailOnTimeout` は
-`finally` で `thread.join(1)`（1 ミリ秒）しか待たずに抜ける（`FailOnTimeout.java:133-138`、判定は
-`getResult` の `:153-168`）ので、**テスト本体が走ったまま `@AfterEach` → `afterEach` →
-`endTransactions()`（`DbAccessTestExtension.java:25-29`）が並行実行される競合が残る**はずである。
-`afterEach` がテスト本体の終了を待たないことは §4.2 後半で実測しているが、
-`endTransactions()` との競合そのものは観測していない（§2.3）。
+**タイムアウト成立時は、条件つきでテスト本体と後処理が並行実行される（実測した）。** `FailOnTimeout` は
+`createTimeoutException()` で **`thread.interrupt()` を呼んだうえで**（`FailOnTimeout.java:176`、呼び出しは `getResult` の `:166`）、
+`finally` の `thread.join(1)`（1 ミリ秒）だけ待って抜ける（`:133-138`）。最小再現（`~/.m2` の junit 4.13.1 と junit-jupiter 5.11.0 を
+`javac`/`java` に直接渡し、`Timeout(300ms)` を `interceptTestMethod` で巻いて素の `@AfterEach` を置いた）のログは、`Thread.sleep` の本体が
+`[body-start, body-INTERRUPTED, afterEach]`、割り込みを無視するビジーループの本体が `[body-start, afterEach, body-end interrupted=true]`。
+**並行実行になるのは、割り込みに反応しない処理を本体が実行している場合に限る**（NTF ではこの後処理が `endTransactions()`（`DbAccessTestExtension.java:25-29`）にあたるが、再現には組み込んでいない）。恒久テスト化の判断は §4.6。
 
 **この絞り込みが及ぶ範囲。** §2.1 で調べたのは `beforeEach` の実行経路上にある 5 アーティファクトだけで、
 そこには上の 2 つ以外に `ThreadLocal` の宣言がない。**壊れること自体は実測済みだが、
@@ -881,6 +879,7 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
 `db/MockConnectionFactory.java` と `MockTransactionFactory.java` があり `resources/unit-test.xml` に登録済みで、実 DB も
 追加設定も要らない。(b) — 失敗は `IllegalArgumentException: specified database connection name is not register in
 thread local. connection name = [transaction]` という固有のメッセージになる（§4.4 (5)）。
+**一方、`Timeout` 成立時の並行実行（§4.4 (5)）は恒久テストにせず、別課題として残す** —— タイムアウトの成立とスレッド割り込みのタイミングに依存し、実行環境の負荷で結果が揺れる不安定なテストになりやすいため。
 
 **さらに `6716f98`「test: finalを守るテストを追加し、TestRule統合テストの表明を補強する」で足したもの。**
 
@@ -1075,7 +1074,7 @@ import しているのは **9 ファイル**（`unzip` して `grep -rl "^import
 | rst:395-414 `CustomTestSupportExtension`（`resolveTestRules()` のオーバーライド）の例 | **要修正。** `:407-408` に `// 2. 親クラスの resolveTestRules() の結果をベースにしてリストを生成する` と `List<TestRule> rules = new ArrayList<>(super.resolveTestRules());` があり、基底実装が空リストを返すようになる（§4.5 (1)）ため成り立たない。`new ArrayList<>()` から始める形に書き換え、コメント 2 を削る |
 | rst:416-418「これにより、JUnit 5のテスト上でもJUnit 4の `TestRule` を再現できるようになる」 | **要修正。** §4.4 の (1)(2)(3)(6) を追記する。すなわち、(a) 包む範囲がテストメソッドのみで `@BeforeEach` / `@AfterEach` を含まないため、**`ExternalResource#before()` は `@BeforeEach` の後、`after()` は `@AfterEach` の前に実行される**こと（`TemporaryFolder` を `@BeforeEach` から使うと `IllegalStateException` になり、`TestWatcher` は `@AfterEach` の失敗を観測できない）、(b) **`@BeforeEach` が失敗するとルールの前処理も後処理も一切走らない**こと、(c) `base` を呼ばないルール・2 回以上呼ぶルール（retry 系）は使えないこと、(d) `@TestFactory` / `DynamicTest` には適用されないこと |
 | rst:420-421「必ず親クラスの `resolveTestRules()` が返すリストをベースにすること。そうしない場合、親クラスで登録している `TestRule` が再現されなくなる」 | **要修正。** 基底実装が空リストを返すようになるため、この理由づけは成り立たなくなる（§4.5 (1)）。あわせて**移行手順**を書く: 「前処理だけのルール（`TestName` / `TestDescription` 相当）をこれまで `resolveTestRules()` に渡していた場合、その実行位置は `@BeforeEach` の後へ移る。`@BeforeEach` からルールが設定した値（`TestName#getMethodName()` 相当）を参照していた場合は、参照側をテストメソッド内へ移すこと」（§5.1 の非互換）。**`resolveInternalTestRules()` は NTF 内部専用なので、移行先としては案内しない**（§4.5 (2)） |
-| （新規）rst:395-414 の直後 | **要追加。** §4.4 (5) の警告。**この節の唯一の例が `Timeout` である以上、これは必須。** `Timeout` はテスト本体を別スレッドで実行するため、`DbAccessTestExtension`（`@DbAccessTest`）と併用するとテスト本体から DB コネクションが取れない。またタイムアウト成立時にテスト本体と後処理が並行実行される。コネクションが取れないことは**実測済み**で、恒久テストにもした（§4.4 (5)、§4.6）。**タイムアウト成立時の並行実行だけは未実測**（§2.3）なので、差分案を出すときにその 1 点だけレビュー依頼に添える |
+| （新規）rst:395-414 の直後 | **要追加。** §4.4 (5) の警告。**この節の唯一の例が `Timeout` である以上、これは必須。** `Timeout` はテスト本体を別スレッドで実行するため、`DbAccessTestExtension`（`@DbAccessTest`）と併用するとテスト本体から DB コネクションが取れない。またタイムアウトが成立し、かつテスト本体が割り込みに反応しない処理を実行している場合は、テスト本体と後処理が並行実行される。どちらも**実測済み**（前者は恒久テストにもした。§4.4 (5)、§4.6） |
 
 **例外の扱いの変更（`RuntimeException` に包まれなくなる。§4.5 (4)）と `resolveInternalTestRules()` は、
 解説書には入れない。** 前者は当該節（rst:370-421）に例外の扱いの記述がなく、書かれていない前提が変わっただけだから。
