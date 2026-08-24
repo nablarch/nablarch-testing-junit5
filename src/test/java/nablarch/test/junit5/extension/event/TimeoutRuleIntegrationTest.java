@@ -110,6 +110,10 @@ public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
 
     /**
      * 解説書の例と同じ形の、 {@link CustomTestSupport} のルールを再現する Extension。
+     * <p>
+     * 基底実装が空のリストを返すため、解説書の例と同じく {@code super.resolveTestRules()} を
+     * ベースにせず、空のリストにルールを追加して返す。
+     * </p>
      */
     static class CustomTestSupportExtension extends TestEventDispatcherExtension {
         @Override
@@ -119,7 +123,7 @@ public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
 
         @Override
         protected List<TestRule> resolveTestRules() {
-            List<TestRule> testRules = new ArrayList<>(super.resolveTestRules());
+            List<TestRule> testRules = new ArrayList<>();
             testRules.add(((CustomTestSupport) support).timeout);
             return testRules;
         }
