@@ -670,12 +670,22 @@ override しているものは NTF 内には存在しない（`grep -rn "beforeT
 作り方を別に決めること、およびルールのインスタンスが 1 個しかなく N 件の動的テストに N 回 `apply` される以上、
 状態を溜めるルールの寿命を決めること。本設計はそこまで踏み込まない。
 
-**(7) `@Nested` を持つテストクラスでは正しく動かない（1-A 以前からある別課題）。**
+**(7) `@Nested` を持つテストクラスでは、ルールが `support` を参照する場合に限り正しく動かない（1-A 以前からある別課題）。**
 
-`@Nested` クラスを足すと **Extension のインスタンスが外側クラスと入れ子クラスで共有される**
-（JUnit 5.11.0 単体の最小再現で `identityHashCode` の一致を実測）。`postProcessTestInstance`
-（`TestEventDispatcherExtension.java:60-62`）は両方のインスタンスに対して呼ばれるため、`support` フィールド
-（`:58`、代入は `:62`）が後勝ちで上書きされ、ルールが記録するサポートインスタンスとテスト本体が参照するものが別になる。
+**ルールの適用そのものは `@Nested` でも正しく行われる。** タスク #4 の実装後（`35e5482`）に、
+`ConfigurableTestRuleExtension` へルールを 1 本設定し、外側のテストと `@Nested` なテストを 1 本ずつ持つ
+テストクラスを `JupiterEngineRunner` で実行して確かめた。実行ログは
+`[rule-before, outer-body, rule-after, rule-before, inner-body, rule-after]` で、
+外側・入れ子のどちらでもルールがテスト本体を包んでいる（2 件とも成功）。
+**この観測は使い捨てのプローブで行っており、再現物は残っていない**（§4.2 のプロトタイプと同じ扱い）。
+
+壊れるのは `support` の側である。`@Nested` クラスを足すと
+**Extension のインスタンスが外側クラスと入れ子クラスで共有される**。同じプローブで
+`postProcessTestInstance` の中の `System.identityHashCode(this)` が 3 回とも同一値になり、
+`System.identityHashCode(support)` は 3 回とも別値になることを観測した。
+`postProcessTestInstance`（`TestEventDispatcherExtension.java:60-62`）は両方のインスタンスに対して
+呼ばれるため、`support` フィールド（`:58`、代入は `:62`）が後勝ちで上書きされ、
+ルールが `support` から取ったものとテスト本体が参照するものが別になる。
 **これは TestRule 再現機構の問題ではなく、`support` フィールドを 1 枠しか持たない設計に起因する。
 1-A 以前から存在する課題であり、1-A を選んだことで受け入れた非互換ではない。**
 よって**タスク #4 の対象外とし**、`support` の持ち方（`ExtensionContext.Store` へ移すなど）は別課題として立てる。
