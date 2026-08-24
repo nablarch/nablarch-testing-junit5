@@ -182,32 +182,32 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [ ] **`@author` の表記を揃える。** 本セッションで追加したファイルが `Ito Kiyohito`（実装エキスパートが
+- [x] **`@author` の表記を揃える。** 本セッションで追加したファイルが `Ito Kiyohito`（実装エキスパートが
       git の author から推測）と `Claude`（#1 で追加）で不揃い。ユーザーの回答を得て統一する
-- [ ] `resolveTestRules()` の Javadoc に **design.md §4.4 の制約 8 点をすべて**明記する
+- [x] `resolveTestRules()` の Javadoc に **design.md §4.4 の制約 8 点をすべて**明記する
       （解説書には (1)(2)(3)(5)(6) だけを書く。design.md §4.4 冒頭の書き分けに従う）
-- [ ] design.md §4.4 の「どのルールが使えて何が使えないか」の一覧を Javadoc に反映する
-- [ ] 基底実装が空リストを返すようになったことを明記する（design.md §4.5 (1)）
-- [ ] `resolveInternalTestRules()` の Javadoc に、**NTF 内部専用であり利用者は override しないこと**と、
+- [x] design.md §4.4 の「どのルールが使えて何が使えないか」の一覧を Javadoc に反映する
+- [x] 基底実装が空リストを返すようになったことを明記する（design.md §4.5 (1)）
+- [x] `resolveInternalTestRules()` の Javadoc に、**NTF 内部専用であり利用者は override しないこと**と、
       ここに置いたルールが投げた例外は `RuntimeException` に包まれること（design.md §4.5 (4)）を明記する
-- [ ] `resolveTestRules()` が `null` を返した場合・リストに `null` が混ざった場合は素の NPE になる。
+- [x] `resolveTestRules()` が `null` を返した場合・リストに `null` が混ざった場合は素の NPE になる。
       ガードするか「`null` を返さないこと」を Javadoc に明記するかを判断する（#4 の Verification レビュー）
-- [ ] `@ParameterizedTest` では全 invocation の `Description` が同一になり、
+- [x] `@ParameterizedTest` では全 invocation の `Description` が同一になり、
       invocation ごとに状態を持つルールは区別できないことを明記する（#4 の Design レビュー）
-- [ ] `interceptTestMethod` / `interceptTestTemplateMethod` を `final` にした理由を Javadoc に明記する
+- [x] `interceptTestMethod` / `interceptTestTemplateMethod` を `final` にした理由を Javadoc に明記する
       （利用者が自分で override すると `resolveTestRules()` のルールが静かに消えるため）。
       **代替手段（別の Extension クラスとして `InvocationInterceptor` を実装する）には但し書きが要る** ——
       別 Extension からは基底の `protected support` フィールドに届かない（#4 の Design レビューが実測）
-- [ ] `implements InvocationInterceptor` により、`final` にした 2 本以外の default メソッドが
+- [x] `implements InvocationInterceptor` により、`final` にした 2 本以外の default メソッドが
       `@Published` クラスの override 可能面として開くことを明記する
       （`interceptDynamicTest` の 2 オーバーロードを別に数えて 8 本、名前では 7 種。design.md §4.5 (5)）
-- [ ] `resolveTestRules()` の既存 Javadoc にある「親クラスが返したリストをベースにすること」という
+- [x] `resolveTestRules()` の既存 Javadoc にある「親クラスが返したリストをベースにすること」という
       コード例を、基底実装が空リストを返すようになったことに合わせて書き換える（design.md §4.1 の省略 (a)）
-- [ ] JUnit 5 に同等機能がある場合はそちらを優先する旨を追記する
-- [ ] self-check (OK/NG per completion criterion, record in checks/5.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] JUnit 5 に同等機能がある場合はそちらを優先する旨を追記する
+- [x] self-check (OK/NG per completion criterion, record in checks/5.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
