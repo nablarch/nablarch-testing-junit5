@@ -258,29 +258,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 # State
 
-- **Status**: paused
-- **Date**: 2026-08-24
-- **Next**: #7 の判定。**ユーザーは「再開後に未解決について教えて、対応要否を判断したい」と述べている。**
-  まず下の未解決 6 件を提示し、対応要否の判断を受けること。その結果を踏まえて `/rn:ty` か `/rn:gm` の判定に進む
-- **Last completed**: #6（解説書の修正差分案）。#1〜#6 すべてチェックオフ済み。
-  Acceptance criteria 7 件は充足を確認して #7 で提示済み
-- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR https://github.com/nablarch/nablarch-testing-junit5/pull/12 。
-  `mvn -o clean test` = 62 件全件成功。ワーキングツリーはクリーン。
-
-  **未解決 6 件（再開時にこれを提示して対応要否を仰ぐ）**
-
-  1. **`ReflectionSupport` への差し替え（推奨: 別課題）** — `TestEventDispatcherExtension` が使う
-     `org.junit.platform.commons.util.ReflectionUtils.findFields(...)` は `@API(INTERNAL)`。
-     公開 API の `org.junit.platform.commons.support.ReflectionSupport.findFields(Class, Predicate, HierarchyTraversalMode)`
-     （MAINTAINED, since 1.0）が同一シグネチャで存在し、import 1 行と呼び出し 1 か所で差し替えられる。
-     design.md §2.3 が JUnit 6 動作を未確認としている理由そのものが消える。#4 の Design レビューが発見
-  2. **JUnit 6 での動作確認（推奨: 今はやらない）** — design.md §1.4 で scope 外。1 が済めば障壁は消える
-  3. **`@Nested` の制約に恒久テストがない** — 1-A 以前からある別課題（design.md §4.4 (7)）
-  4. **`@TestFactory` / `DynamicTest` は非対応** — 対応しない現状を固定する特性テストは追加済み（design.md §4.4 (6)）
-  5. **design.md が 1089 行**でレビューの目安（950〜1000 行）を超過。削れる箇所は「決定の根拠そのもの」と判定済み
-  6. **調査中に公開したアーティファクトを削除できていない** —
-     https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb 。
-     Artifact ツールに削除の口がないため、claude.ai/code/artifacts のギャラリーからユーザーが削除する必要がある
-
-  **本リポジトリで完結しない作業** — `document-patch.md` は別リポジトリ `nablarch/nablarch-document` 向けの差分案。
-  反映は本モジュールのリリース公開後で、そのバージョンは `pom.xml` が `6-NEXT-SNAPSHOT` のため未定
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
