@@ -261,32 +261,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-24
-- **Last completed**: 未解決 3（`@Nested`）へ恒久テスト `NestedTestRuleSupportIntegrationTest` を追加し、
-  design.md §4.4 (7) / §4.6 を実測に合わせて具体化した（`7897480`）。`mvn -o clean test` = 63 件全件成功。
-  未解決 4（`@TestFactory`）はユーザーへ提示し質疑に回答したが、**まだ承認を得ていない**
-- **Next**: 未解決 4 の再提示（下記の要修正点を反映して）→ 承認後に未解決 5（design.md の行数超過）を提示 →
-  両方の判断が済んでから `/rn:ty`（承認）または `/rn:gm`（修正）で #7 の判定に進む
-- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR
-  https://github.com/nablarch/nablarch-testing-junit5/pull/12 。ワーキングツリーはクリーン。
-
-  **残る未解決 2 件**
-
-  4. **`@TestFactory` / `DynamicTest` は非対応** — design.md・特性テスト・Javadoc・解説書差分の 4 点は揃っている
-     （提案は A: 未解決リストから外す）。**ただし提示中に見つけた未反映の事実がある**:
-     修正前（`main`）は `beforeEach` 内で NOOP に対して前処理・後処理だけは実行されており
-     （コードを読んでの判断。実測はしていない、未確認）、修正後は `@TestFactory` では一切実行されなくなった。
-     この「動いていたものが動かなくなる」という非互換が、design.md §4.4 (6) にも Javadoc にも
-     解説書差分案にも書かれていない。**再提示するときは、この非互換を書き足すか、書かなくてよい理由を
-     添えるかを先に決めること**
-  5. **design.md が 1116 行**でレビューの目安（950〜1000 行）を超過（4 の恒久テスト追加でさらに増えた）。
-     削れる箇所は「決定の根拠そのもの」と判定済み。**未提示**
-
-  **処理済みの未解決 4 件**（再掲不要）— 1: `ReflectionSupport` 差し替えは `follow-up.md` に切り出し、
-  コード変更なし。2: JUnit 6 は未決定のため宿題記載を削除。3: `@Nested` は実測でルール適用自体は動くと確認し、
-  「ルールが `support` を参照する場合」だけの限定課題と整理し直したうえで、恒久テストを追加して確定。
-  6: 公開済みアーティファクトはユーザー側でギャラリーから削除が必要（Artifact ツールに削除の口がない）
-
-  **本リポジトリで完結しない作業** — `document-patch.md` は別リポジトリ `nablarch/nablarch-document` 向けの差分案。
-  反映は本モジュールのリリース公開後で、そのバージョンは `pom.xml` が `6-NEXT-SNAPSHOT` のため未定
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
