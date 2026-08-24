@@ -257,8 +257,32 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 # State
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-08-24
+- **Last completed**: #6（解説書の修正差分案）。#1〜#6 すべてチェックオフ済み。
+  Acceptance criteria 7 件は充足を確認して #7 で提示済み
+- **Next**: **未解決 4 を提示すること。** ユーザーの指示は「未解決を 1 件ずつ提示し、OK が出るまで次に進まない」。
+  4 のあと 5 を提示し、両方の判断が済んでから `/rn:ty` / `/rn:gm` の判定に進む
+- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR
+  https://github.com/nablarch/nablarch-testing-junit5/pull/12 （本文から steering / design / document-patch /
+  follow-up の 4 文書へリンク済み）。`mvn -o clean test` = 62 件全件成功。ワーキングツリーはクリーン。
+
+  **ユーザーが示した方針** — 本 PR は不具合対応に絞る。余計な変更はしない。
+  実害を示せないものを未解決として残さない（読み手が混乱するため）。
+
+  **残る未解決 2 件**
+
+  4. **`@TestFactory` / `DynamicTest` は非対応** — 対応しない現状を固定する特性テスト
+     `TestFactoryRuleIntegrationTest` は追加済み（design.md §4.4 (6)）。**未提示**
+  5. **design.md が 1094 行**でレビューの目安（950〜1000 行）を超過。削れる箇所は
+     「決定の根拠そのもの」と判定済み。**未提示**
+
+  **処理済みの未解決 4 件**（再掲不要）— 1: `ReflectionSupport` 差し替えは `follow-up.md` に切り出し、
+  コード変更なし。2: JUnit 6 は製品側に記載がなく未決定のため、宿題として掲げていた記載を全削除
+  （§2.1 の判断1 の根拠は残す）。3: `@Nested` は実測でルールが正しく動くことを確認し、
+  課題ではないと判断してリストから削除（design.md §4.4 (7) の見出しを実測に合わせて限定）。
+  6: 公開済みアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
+  Artifact ツールに削除の口がないため、claude.ai/code/artifacts のギャラリーからユーザーが削除する必要がある
+
+  **本リポジトリで完結しない作業** — `document-patch.md` は別リポジトリ `nablarch/nablarch-document` 向けの差分案。
+  反映は本モジュールのリリース公開後で、そのバージョンは `pom.xml` が `6-NEXT-SNAPSHOT` のため未定
