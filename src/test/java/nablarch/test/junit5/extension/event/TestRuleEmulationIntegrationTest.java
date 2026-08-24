@@ -46,7 +46,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Extension のインスタンスが外側のクラスと入れ子のクラスで共有されるため、
  * {@link #support} フィールドが後から生成されたサポートクラスで上書きされ、検証が成立しなくなる。
  * </p>
- * @author Claude
+ * @author Ito Kiyohito
  */
 @ExtendWith(TestRuleEmulationIntegrationTest.RecordingSupportExtension.class)
 public class TestRuleEmulationIntegrationTest {
