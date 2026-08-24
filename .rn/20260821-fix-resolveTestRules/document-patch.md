@@ -71,16 +71,23 @@ PR を出す前に番号を確認し、そのリリースが公開されるま�
 
 つまり、**インラインマークアップの終端の直後に `（` を置くときだけは、間の半角スペースが必須である**
 （全角 `（` は docutils が「マークアップ終端の直後に置ける文字」として扱わないため）。
-それ以外（`（` の直後、`）` の直前、`**` の終端と句点の間）の空白は不要で、既存の rst:91 も
+`（` の直後と `）` の直前は詰めるのが慣行で、既存の rst:91 も
 ``（ここでは :java:extdoc:`TestSupport <nablarch.test.TestSupport>`）`` と閉じ側を詰めている。
-§2 の diff はこの方針で書式を揃えてある。
 
-**1 点だけ、corpus の慣行から意図的に外した箇所がある。** 強調の終端が句点に接する `**...** 。` は、
-`5391d5c` の ja 配下に 2 か所あり、`**...**。` と詰めた形は 0 か所である（`git grep`）。
-ただし**対象ファイルにはどちらの形も存在せず**、`** 。` は出力に余分な半角スペースが残る（上表）。
-同じファイルの rst:91 が閉じ側を詰めていることに合わせて、**本差分案は `**...**。` と詰めている。**
-corpus 側に合わせるべきという判断があれば、該当は ja の 1 行だけ（修正3 の 1 項目目の「動かなくなる」）なので、
-`**` と `。` の間に半角スペースを入れ直せばよい。docutils はどちらでも通る。
+**一方、インラインマークアップの終端と句点の間には半角スペースを入れる。** `5391d5c` を `git grep` で数えた結果。
+
+| 書き方 | ja 配下の件数 |
+|---|---|
+| 二重バッククォートの終端 + 半角スペース + `。` | **126 件** |
+| 二重バッククォートの終端 + `。`（詰めた形） | 15 件 |
+| `**` の終端 + 半角スペース + `。` | **2 件** |
+| `**` の終端 + `。`（詰めた形） | 0 件 |
+
+**合わせて 128 対 15 で、「空白を入れる」が慣行である。** 対象ファイルにはどちらの形も存在しないため、
+corpus の多数派に合わせて **`**...** 。` と空けた。`** 。` は出力に余分な半角スペースが残るが（上表）、
+それは 126 件ある `` ` `` 側でも同じであり、この解説書群はそれを許容している。
+rst:91 は `` ` `` の直後が `）` であって句点ではないので、句点側の判断の根拠にはならない。docutils はどちらでも通る。
+§2 の diff はこの方針で書式を揃えてある。
 
 ### 1.4 適用手順（受け取った人が実施すること）
 
@@ -93,24 +100,30 @@ cd <nablarch-document のワークツリー>
 JA=ja/development_tools/testing_framework/guide/development_guide/06_TestFWGuide/JUnit5_Extension.rst
 EN=en/development_tools/testing_framework/guide/development_guide/06_TestFWGuide/JUnit5_Extension.rst
 
-# 1. §2 の diff ブロックの中身を patch.diff として保存する（改行は LF でも CRLF でもよい。CR は含まれない）
+# 1. §2 の diff ブロックの中身を patch.diff として保存する
+#    §2 のコードフェンスの内側を、最初の "diff --git" 行から最後の区切り線（ハイフンだけの行）まで
+#    1 行も欠かさず全部コピーする。本手順で手作業なのはここだけである
+#    （改行は LF でも CRLF でもよい。CR は含まれない）
 
 # 2. 対象 2 ファイルを一時的に LF にする
 sed -i 's/\r$//' "$JA" "$EN"
 
-# 3. 当てる（コード例の空行にある半角スペース 2 個で警告が出ないよう --whitespace=nowarn を付ける）
+# 3. 当てる（--whitespace=nowarn は保険。2 スペースだけの空行 13 か所はいずれもハンクの外にあり、
+#     フラグなしでも警告は出ないことを 5391d5c の複製で確認済み）
 git apply --whitespace=nowarn patch.diff
 
 # 4. CRLF に戻す
 sed -i 's/$/\r/' "$JA" "$EN"
 
 # 5. 検算（§1.5）
-wc -l "$JA" "$EN"          # → どちらも 485
+wc -l "$JA" "$EN"          # → どちらも 488
 file "$JA" "$EN"           # → どちらも "with CRLF line terminators"
-git diff --stat            # → 2 files changed, 72 insertions(+), 12 deletions(-)
+git diff --stat            # → 2 files changed, 78 insertions(+), 12 deletions(-)
 
 # 6. textlint を通す（§1.6）
+#    textlint-plugin-rst が Python の rst2ast を呼ぶため、npm と Python の両方の環境が要る
 npm ci
+pip install -r requirements.txt   # docutils==0.15.2 / docutils-ast-writer==0.1.2 を含む
 npx textlint "$JA" "$EN"
 ```
 
@@ -118,10 +131,10 @@ npx textlint "$JA" "$EN"
 
 | 確認すること | 期待値 |
 |---|---|
-| 行数 | ja / en とも **455 行 → 485 行**（内訳は下表） |
+| 行数 | ja / en とも **455 行 → 488 行**（内訳は下表） |
 | 改行コード | ja / en とも **CRLF**（`file` の出力に `with CRLF line terminators`） |
-| 変更行数 | `git diff --stat` が **2 files changed, 72 insertions(+), 12 deletions(-)**（1 ファイルあたり +36 −6） |
-| rst の構文 | `docutils` の system message が **0 件**（原文も 0 件。§1.7 参照） |
+| 変更行数 | `git diff --stat` が **2 files changed, 78 insertions(+), 12 deletions(-)**（1 ファイルあたり +39 −6） |
+| rst の構文 | `docutils` の system message が **0 件**（既定の `report_level=2` の場合。原文も 0 件。§1.7 参照） |
 | コード例の空行 | `git diff` の文脈行で、半角スペース 2 個だけの行が落ちていない |
 
 行数の内訳（ja / en 共通）。
@@ -129,10 +142,14 @@ npx textlint "$JA" "$EN"
 | 修正 | 変更前 | 変更後 | 増減 |
 |---|---|---|---|
 | 修正1（コード例） | 10 行 | 9 行 | **−1** |
-| 修正2（`.. warning::` の挿入） | — | 8 行（末尾の空行を含む） | **+8** |
-| 修正3（制約の追記） | — | 20 行（末尾の空行を含む） | **+20** |
-| 修正4（注記の書き換え） | 2 行 | 5 行 | **+3** |
-| 合計 | 455 行 | 485 行 | **+30** |
+| 修正2（`.. warning::` の挿入） | — | 10 行（末尾の空行を含む） | **+10** |
+| 修正3（制約の追記） | — | 21 行（末尾の空行を含む） | **+21** |
+| 修正4（注記の書き換え。説明の直後に 2 行 + 空行、節末に 2 行） | 2 行 | 5 行 | **+3** |
+| 合計 | 455 行 | 488 行 | **+33** |
+
+**受け取った側の git が `core.autocrlf=true` だと、手順 4 で戻した CR がコミット時に落ちる。**
+反映先の `.gitattributes`（`5391d5c`）は `*.bat` しか固定していないため、設定次第でこうなる。
+上表の `git diff --stat` が 78/12 にならず全行差分になるので、この検算で気づける。
 
 ### 1.6 textlint
 
@@ -145,22 +162,34 @@ npx textlint "$JA" "$EN"
 
 | ファイル | 原文（`5391d5c`） | 適用後 |
 |---|---|---|
-| ja | error 3 件（`prh`「利用 => 使用」。rst:56 / rst:324 / rst:433） | error 3 件（同じ 3 件が rst:56 / rst:324 / rst:463 へ移動しただけ） |
+| ja | error 3 件（`prh`「利用 => 使用」。rst:56 / rst:324 / rst:433） | error 3 件（同じ 3 件が rst:56 / rst:324 / rst:466 へ移動しただけ） |
 | en | error 0 件 | error 0 件 |
 
 **追加分が増やした指摘は 0 件である。** 残る 3 件は原文にもとからあるもので、本差分案とは無関係である
-（`prh.yml` の `利用` → `使用` ルール。本差分案は「利用者」しか使っておらず、これはルールの除外対象 `(?!者|ケース)` に当たる）。
+（`prh.yml:17` の `/(再)?利用(?!者|ケース)/` → `使用` ルール）。**そもそも、追記した rst には「利用」を含む語が
+1 つもない**（`git grep` で確認。適用後の ja で「利用」が出るのは rst:56 / rst:324 / rst:466 の 3 行だけで、
+いずれも原文由来である）。
 追記した日本語は `max-ten`（1 文の読点 3 個以内）と `max-kanji-continuous-len`（連続漢字 8 文字以内）にも触れていない。
 
 ### 1.7 rst の構文検証
 
-`docutils` 0.22.4 で原文と適用後の 4 ファイルを解析し、**いずれも system message 0 件**であることを確認した
+**反映先が `requirements.txt` で固定している `docutils` 0.15.2 と、手元の 0.22.4 の両方**で原文と適用後の
+4 ファイルを解析し、**いずれも system message 0 件**であることを確認した
 （`:java:extdoc:` / `:ref:` はダミーのロール、`contents` / `code-block` はダミーのディレクティブとして登録した。
 `code-block` を登録しないと Pygments の有無に依存した警告が出て、原文と適用後の比較にならない）。
 
-さらに、`5391d5c` の複製に §1.4 の手順をそのまま実行し、**`git apply` が成功すること・結果が本差分案の想定と
-バイト単位で一致すること・485 行 CRLF になること**を確認した。作業は一時ディレクトリで行い、
-`nablarch-document` には一切書き込んでいない（使ったのは `git show` / `git ls-tree` / `git archive` / `git rev-parse` のみ）。
+**「0 件」は既定の `report_level=2`（WARNING 以上）での話である。** `report_level=1`（INFO 以上）にすると、
+**原文・適用後とも 2 件**の INFO が出る（rst:1 と rst:46 の未参照 hyperlink target。他ファイルから
+`:ref:` で参照されるラベルであり、単体解析では未参照になる）。件数も内容も原文と適用後で変わらないので、
+本差分案の結論は変わらない。
+
+**箇条書きの中に置いた `.. tip::`（修正3）は、doctree で 1 点目の `list_item` の子になる**ことも確認した
+（0.15.2 / 0.22.4 とも `item1: ['paragraph', 'tip']`、`item2`〜`item4` は `['paragraph']`）。
+
+さらに、`5391d5c` の複製に §1.4 の手順をそのまま実行し、**`git apply` が成功すること・488 行 CRLF になること・
+`git diff --stat` が 78/12 になること・適用後の 2 ファイルに `npx textlint` を通して指摘が §1.6 の表のとおりになること**
+を確認した。作業は一時ディレクトリで行い、`nablarch-document` には一切書き込んでいない
+（使ったのは `git show` / `git archive` のみ）。
 
 ## 2. 適用する unified diff（主成果物）
 
@@ -185,17 +214,22 @@ diff --git a/en/development_tools/testing_framework/guide/development_guide/06_T
            return rules;
        }
    }
-@@ -417,8 +416,39 @@ In the Extension for your own extension, you can override the method ``resolveTe
+@@ -417,8 +416,42 @@ In the Extension for your own extension, you can override the method ``resolveTe
  Implement this method to return a list of the ``TestRules`` of JUnit 4 that you want to reproduce.
  This allows you to reproduce  ``TestRule`` of JUnit 4 on JUnit 5 tests.
  
 -Note that overriding ``resolveTestRules()`` should always be based on the list returned by the parent class ``resolveTestRules()``.
 -If not, the ``TestRule`` registered in the parent class will not be reproduced.
++Note that the base implementation of ``resolveTestRules()`` returns an empty list, so you do not need to base your list on the list returned by the parent class ``resolveTestRules()``.
++The ``TestRule`` used internally by the automated testing framework is applied by a mechanism other than this method.
++
 +.. warning::
 +
-+  ``Timeout`` cannot be used together with :java:extdoc:`DbAccessTestExtension <nablarch.test.junit5.extension.db.DbAccessTestExtension>` (:java:extdoc:`DbAccessTest <nablarch.test.junit5.extension.db.DbAccessTest>`), because it executes the test method in a separate thread.
++  ``Timeout`` cannot be used together with :java:extdoc:`DbAccessTestExtension <nablarch.test.junit5.extension.db.DbAccessTestExtension>` (:java:extdoc:`DbAccessTest <nablarch.test.junit5.extension.db.DbAccessTest>`), because ``Timeout`` executes the test method in a separate thread.
 +  The database connection and the transaction established by the automated testing framework are held bound to the thread that executed the pre-processing, so they cannot be obtained from the test method, which runs in another thread.
 +  If the exception raised when obtaining them is caught, **the test succeeds even though the database has not been accessed**.
++  The ``@Timeout`` of JUnit 5 does not execute the test method in a separate thread by default, so this problem does not occur.
++
 +  Even when a timeout occurs, the thread that is executing the test method is only interrupted.
 +  If that thread is running a process that does not respond to interruption, the post-processing is executed while the test method is still running.
 +
@@ -203,26 +237,24 @@ diff --git a/en/development_tools/testing_framework/guide/development_guide/06_T
 +
 +* The rule wraps only the execution of the test method; ``@BeforeEach`` / ``@AfterEach`` and the pre-processing and post-processing of the automated testing framework are not included.
 +  Therefore, whereas in JUnit 4 the pre-processing of the rule was executed before ``@Before`` and its post-processing after ``@After``, in this extension the pre-processing of the rule is executed after ``@BeforeEach`` and its post-processing before ``@AfterEach``.
-+  For example, code in ``@AfterEach`` that refers to a resource created by ``ExternalResource`` or ``TemporaryFolder``, and code that observes a failure of ``@AfterEach`` with ``Stopwatch``, **stop working as expected without raising any exception**.
++  For example, code in ``@AfterEach`` that refers to a resource created by ``ExternalResource`` or ``TemporaryFolder``, and code that observes a failure of ``@AfterEach`` with ``Stopwatch``, both **stop working as expected without raising any exception**.
++
++  .. tip::
++    Calling ``getRoot()`` of ``TemporaryFolder`` from ``@BeforeEach`` raises ``IllegalStateException``, because the temporary folder has not been created yet.
++
 +* If ``@BeforeEach`` fails, neither the pre-processing nor the post-processing of the rule is executed at all.
 +  This is because the rule can be assembled only when the test method is executed, and JUnit 5 does not reach the execution of the test method if ``@BeforeEach`` fails.
 +  In JUnit 4, the post-processing of the rule was executed even if ``@Before`` failed.
-+  If you leave the release of resources to the rule, the resources are leaked only when ``@BeforeEach`` fails.
++  Be careful if you leave the release of resources to the rule: the resources are leaked only when ``@BeforeEach`` fails.
 +* A rule that does not call ``base`` (one that skips the test) and a rule that calls ``base`` twice or more (one that retries or repeats the test) cannot be used.
 +  In both cases the test fails with an exception (in the latter case, after the test method has been executed once).
 +  Here, ``base`` means the first argument of the ``apply`` method of ``TestRule``, that is, the ``Statement`` that the rule wraps.
 +* The rule is not applied to the ``DynamicTest`` generated by ``@TestFactory``.
 +  In this case, **the test is executed without raising any exception**.
 +
-+.. tip::
-+  Calling ``getRoot()`` of ``TemporaryFolder`` from ``@BeforeEach`` raises ``IllegalStateException``, because the temporary folder has not been created yet.
-+
 +Because of these restrictions, if JUnit 5 has an equivalent feature, use that feature instead of porting the rule.
 +
-+Note that the base implementation of ``resolveTestRules()`` returns an empty list, so you do not need to base your list on the list returned by the parent class ``resolveTestRules()``.
-+The ``TestRule`` used internally by the automated testing framework is applied by a mechanism other than this method.
-+
-+As described in the first restriction above, the position where the rules are applied has changed from JUnit 4.
++Because the rule wraps only the execution of the test method, the position where the rules are applied has changed from JUnit 4.
 +If you return a rule that only records information before the test is executed (such as ``TestName``), move the code that refers to the value set by the rule from ``@BeforeEach`` into the test method.
  
  
@@ -245,17 +277,22 @@ diff --git a/ja/development_tools/testing_framework/guide/development_guide/06_T
            return rules;
        }
    }
-@@ -417,8 +416,39 @@ JUnit 4のTestRuleを再現する
+@@ -417,8 +416,42 @@ JUnit 4のTestRuleを再現する
  このメソッドで、再現させたいJUnit 4の ``TestRule`` をリストにして返却するように実装する。
  これにより、JUnit 5のテスト上でもJUnit 4の ``TestRule`` を再現できるようになる。
  
 -なお、 ``resolveTestRules()`` をオーバーライドするときは、必ず親クラスの ``resolveTestRules()`` が返すリストをベースにすること。
 -そうしない場合、親クラスで登録している ``TestRule`` が再現されなくなる。
++なお、 ``resolveTestRules()`` の基底実装は空のリストを返すため、親クラスの ``resolveTestRules()`` が返すリストをベースにする必要はない。
++自動テストフレームワークが内部で使用する ``TestRule`` は、このメソッドとは別の経路で適用される。
++
 +.. warning::
 +
 +  ``Timeout`` はテストメソッドを別スレッドで実行するため、 :java:extdoc:`DbAccessTestExtension <nablarch.test.junit5.extension.db.DbAccessTestExtension>` （:java:extdoc:`DbAccessTest <nablarch.test.junit5.extension.db.DbAccessTest>`）と併用できない。
 +  自動テストフレームワークが確立したデータベース接続とトランザクションは、事前処理を実行したスレッドに紐付けて保持されるため、別スレッドで実行されるテストメソッドからは取得できなくなる。
-+  取得に失敗したときの例外を捕捉していると、 **データベースにアクセスできていないままテストが成功してしまう** ので注意すること。
++  取得に失敗したときの例外を捕捉していると、 **データベースにアクセスできていないままテストが成功してしまう** 。
++  JUnit 5の ``@Timeout`` は既定でテストメソッドを別スレッドで実行しないため、この問題は起きない。
++
 +  また、タイムアウトが発生しても、テストメソッドを実行しているスレッドには割り込みが行われるだけである。
 +  割り込みに反応しない処理を実行している場合、テストメソッドが動き続けたまま事後処理が実行される。
 +
@@ -263,7 +300,11 @@ diff --git a/ja/development_tools/testing_framework/guide/development_guide/06_T
 +
 +* ルールが包むのはテストメソッドの実行だけであり、 ``@BeforeEach`` / ``@AfterEach`` や自動テストフレームワークの事前処理・事後処理は含まれない。
 +  そのため、JUnit 4ではルールの事前処理が ``@Before`` より前・事後処理が ``@After`` より後に実行されていたのに対し、本拡張機能ではルールの事前処理が ``@BeforeEach`` の後、事後処理が ``@AfterEach`` の前に実行される。
-+  例えば、 ``ExternalResource`` や ``TemporaryFolder`` が作成したリソースを ``@AfterEach`` から参照するコードや、 ``@AfterEach`` の失敗を ``Stopwatch`` で観測するコードは、 **例外にならないまま期待どおりに動かなくなる**。
++  例えば、 ``ExternalResource`` や ``TemporaryFolder`` が作成したリソースを ``@AfterEach`` から参照するコードや、 ``@AfterEach`` の失敗を ``Stopwatch`` で観測するコードは、 **例外にならないまま期待どおりに動かなくなる** 。
++
++  .. tip::
++    ``@BeforeEach`` から ``TemporaryFolder`` の ``getRoot()`` を呼び出した場合は、一時フォルダがまだ作成されていないため ``IllegalStateException`` が発生する。
++
 +* ``@BeforeEach`` が失敗した場合、ルールは事前処理も事後処理も一切実行されない。
 +  ルールを組み立てられるのはテストメソッドを実行する時点であり、JUnit 5は ``@BeforeEach`` が失敗するとテストメソッドの実行に到達しないためである。
 +  JUnit 4では ``@Before`` が失敗してもルールの事後処理は実行されていた。
@@ -272,17 +313,11 @@ diff --git a/ja/development_tools/testing_framework/guide/development_guide/06_T
 +  どちらもテストが例外で失敗する（後者は、テストメソッドが1回実行されたうえで失敗する）。
 +  ここでいう ``base`` とは、 ``TestRule`` の ``apply`` メソッドの第1引数、すなわちルールが包む対象の ``Statement`` である。
 +* ``@TestFactory`` が生成した ``DynamicTest`` には、ルールが適用されない。
-+  この場合、 **例外にもならないままテストが実行される** ので注意すること。
-+
-+.. tip::
-+  ``@BeforeEach`` から ``TemporaryFolder`` の ``getRoot()`` を呼び出した場合は、一時フォルダがまだ作成されていないため ``IllegalStateException`` が発生する。
++  この場合、 **例外にもならないままテストが実行される** 。
 +
 +これらの制約があるため、JUnit 5に同等の機能がある場合は、ルールを移植するのではなくJUnit 5の機能を使用すること。
 +
-+なお、 ``resolveTestRules()`` の基底実装は空のリストを返すため、親クラスの ``resolveTestRules()`` が返すリストをベースにする必要はない。
-+自動テストフレームワークが内部で使用する ``TestRule`` は、このメソッドとは別の経路で適用される。
-+
-+また、上述の制約の1点目のとおり、ルールが適用される位置はJUnit 4から変わっている。
++また、ルールが包むのはテストメソッドの実行だけであるため、ルールが適用される位置はJUnit 4から変わっている。
 +テストの実行前に情報を控えるだけのルール（``TestName`` など）を返却している場合、ルールが設定した値を ``@BeforeEach`` の中で参照しているコードは、テストメソッドの中に移すこと。
  
  
@@ -312,40 +347,25 @@ diff --git a/ja/development_tools/testing_framework/guide/development_guide/06_T
       }
 ```
 
-**変更後（9 行）**
-
-```
-      // 1. resolveTestRules メソッドをオーバーライドする
-      @Override
-      protected List<TestRule> resolveTestRules() {
-          List<TestRule> rules = new ArrayList<>();
-          // 2. 独自拡張クラスで定義しているTestRuleをリストに追加する
-          rules.add(((CustomTestSupport) support).timeout);
-          // 3. 生成したリストを返却する
-          return rules;
-      }
-```
+**変更後は §2 の diff を参照。** ここには再掲しない（二重管理を避けるため。以下の修正も同じ）。
 
 ### 修正2 — `Timeout` と `DbAccessTestExtension` の併用に対する警告を新規追加
 
 **理由。** design.md §6 のとおり、**この節が挙げている唯一の例が `Timeout` である**以上、必須である。
 
-**挿入位置は rst:418 の説明の後、修正3 の制約リストの前。** コード例（rst:395-414）とその説明（rst:416-418）の
-間に挟むと、読者はコードを読み終えた直後に警告を踏まされ、説明に戻されることになる。
-説明を読み終えてから、`Timeout` 固有の落とし穴 →（修正3 の）再現機構全体の制約、という順に読ませる。
+**挿入位置は design.md §6 の記述（「rst:395-414 の直後」）から意図的に変更してある。** コード例の直後に挟むと、
+読者はコードを読み終えた直後に警告を踏まされ、説明（rst:416-418）に戻されることになる。
+説明と、修正4 の「`super` をベースにする必要はない」（コード例を見た読者が最初に確認しに来る 2 行）を
+読み終えてから、`Timeout` 固有の落とし穴 →（修正3 の）再現機構全体の制約、という順に読ませる。
+**挿入する内容は 10 行（末尾の空行を含む）。内容は §2 の diff を参照。**
 
-**挿入する内容（8 行。末尾の空行を含む）**
+**警告は 2 段落に分けた。** 前半 3 文は `DbAccessTestExtension` との併用に固有の話だが、後半 2 文は
+`Timeout` 一般の性質である。1 段落に続けて書くと、DB を使わず `Timeout` だけを使う読者が 1 文目で読み飛ばしうる。
 
-```
-.. warning::
-
-  ``Timeout`` はテストメソッドを別スレッドで実行するため、 :java:extdoc:`DbAccessTestExtension <nablarch.test.junit5.extension.db.DbAccessTestExtension>` （:java:extdoc:`DbAccessTest <nablarch.test.junit5.extension.db.DbAccessTest>`）と併用できない。
-  自動テストフレームワークが確立したデータベース接続とトランザクションは、事前処理を実行したスレッドに紐付けて保持されるため、別スレッドで実行されるテストメソッドからは取得できなくなる。
-  取得に失敗したときの例外を捕捉していると、 **データベースにアクセスできていないままテストが成功してしまう** ので注意すること。
-  また、タイムアウトが発生しても、テストメソッドを実行しているスレッドには割り込みが行われるだけである。
-  割り込みに反応しない処理を実行している場合、テストメソッドが動き続けたまま事後処理が実行される。
-
-```
+**あわせて、前半の末尾に「JUnit 5 の `@Timeout` では起きない」を 1 文足した。**
+警告に「では何を使えばよいか」がないと、読んだ読者がその場で動けない。文面は
+`TestEventDispatcherExtension.java:176` の Javadoc（`JUnit 5 の {@code @Timeout} は既定でテスト本体を
+別スレッドで実行しないため、この問題は起きない。`）にすでにある。
 
 **最後の 2 文は、`FailOnTimeout` の実装を読んだうえで最小再現で実測した結果に合わせてある。**
 `FailOnTimeout.evaluate()` は `finally` で `thread.join(1)` しか待たない（`junit-4.13.1-sources` の
@@ -358,41 +378,24 @@ diff --git a/ja/development_tools/testing_framework/guide/development_guide/06_T
 | 割り込みを無視するビジーループ | `[body-start, afterEach, body-end interrupted=true]` — `@AfterEach` の後まで走り続ける |
 | `Thread.sleep(1500)` | `[body-start, body-INTERRUPTED, afterEach]` — `@AfterEach` より前に `InterruptedException` で打ち切られる |
 
-**「データベースにアクセスできていないままテストが成功してしまう」を `**...**` で強調したのは、
-同じ「静かに壊れる」を指す他の 2 か所（修正3 の 1 項目目・4 項目目）と強調の付け方を揃えるためである。**
-design.md §4.4 (5) はこの経路を「最も影響が大きい」としているのに、ここだけ平文だった。
+**この 2 文には恒久テストを追加していない。** 最小再現をリポジトリに残す案もあったが、design.md §4.6 が
+「タイムアウト成立とスレッド割り込みのタイミング依存で不安定になりやすい」ことを理由に恒久テストにしないと
+決めており、その判断と整合させた。裏づけは `FailOnTimeout.java:135`（`thread.join(1)`）と
+`:176`（`thread.interrupt()`）という一次情報であり、読み手が同じ場所を開いて確かめられる。
 
-### 修正3 — 再現に付く制約を追記（rst:419 の空行の後）
+**「静かに壊れる」を指す 3 か所（この警告・修正3 の 1 項目目・修正3 の 4 項目目）は、書式を揃えてある。**
+design.md §4.4 (5) はこの経路を「最も影響が大きい」としているのに、原案ではここだけ平文だった。
+3 か所とも `**……** 。` で終え、「ので注意すること」は付けない。`.. warning::` の中で「注意すること」と
+書くのは警告と二重であり、他の 2 か所と書式が揃わなくなるためである（en 側も 3 か所とも `**……**.` で揃っている）。
+この結果、追記全体で「ので注意すること」は修正3 の 2 項目目の 1 回だけになった。
+
+### 修正3 — 再現に付く制約を追記（修正2 の警告の直後）
 
 **理由。** 現行の rst:416-418 は「これにより、JUnit 5のテスト上でもJUnit 4の `TestRule` を再現できるようになる」で
 終わっており、再現に付く制約が一切書かれていない。design.md §4.4 の (1)(2)(3)(6) を追記する。
 
-**rst:416-418 の 3 行は変更しない。** 修正2 の警告の直後（修正4 で書き換える rst:420 の前）に挿入する。
-
-**挿入する内容（20 行。末尾の空行を含む）**
-
-```
-ただし、JUnit 5はJUnit 4の ``TestRule`` を正式にはサポートしていないため、この再現には以下の制約がある。
-
-* ルールが包むのはテストメソッドの実行だけであり、 ``@BeforeEach`` / ``@AfterEach`` や自動テストフレームワークの事前処理・事後処理は含まれない。
-  そのため、JUnit 4ではルールの事前処理が ``@Before`` より前・事後処理が ``@After`` より後に実行されていたのに対し、本拡張機能ではルールの事前処理が ``@BeforeEach`` の後、事後処理が ``@AfterEach`` の前に実行される。
-  例えば、 ``ExternalResource`` や ``TemporaryFolder`` が作成したリソースを ``@AfterEach`` から参照するコードや、 ``@AfterEach`` の失敗を ``Stopwatch`` で観測するコードは、 **例外にならないまま期待どおりに動かなくなる**。
-* ``@BeforeEach`` が失敗した場合、ルールは事前処理も事後処理も一切実行されない。
-  ルールを組み立てられるのはテストメソッドを実行する時点であり、JUnit 5は ``@BeforeEach`` が失敗するとテストメソッドの実行に到達しないためである。
-  JUnit 4では ``@Before`` が失敗してもルールの事後処理は実行されていた。
-  リソースの解放をルールに任せている場合、 ``@BeforeEach`` が失敗したときにだけ解放漏れが起きることになるので注意すること。
-* ``base`` を呼び出さないルール（テストをスキップするもの）と、 ``base`` を2回以上呼び出すルール（テストをリトライ・繰り返すもの）は使用できない。
-  どちらもテストが例外で失敗する（後者は、テストメソッドが1回実行されたうえで失敗する）。
-  ここでいう ``base`` とは、 ``TestRule`` の ``apply`` メソッドの第1引数、すなわちルールが包む対象の ``Statement`` である。
-* ``@TestFactory`` が生成した ``DynamicTest`` には、ルールが適用されない。
-  この場合、 **例外にもならないままテストが実行される** ので注意すること。
-
-.. tip::
-  ``@BeforeEach`` から ``TemporaryFolder`` の ``getRoot()`` を呼び出した場合は、一時フォルダがまだ作成されていないため ``IllegalStateException`` が発生する。
-
-これらの制約があるため、JUnit 5に同等の機能がある場合は、ルールを移植するのではなくJUnit 5の機能を使用すること。
-
-```
+**rst:416-418 の 3 行は変更しない。** 修正2 の警告の直後に挿入する。
+**挿入する内容は 21 行（末尾の空行を含む）。内容は §2 の diff を参照。**
 
 **この節でしたこと。**
 
@@ -401,10 +404,10 @@ design.md §4.4 (5) はこの経路を「最も影響が大きい」としてい
 | 例に挙げるルールを `TestWatcher` から `Stopwatch` へ | **`javap` で確認した結果、JUnit 4.13.1 の `org.junit.rules.Stopwatch` は `TestRule` を直接実装したクラスであり、`TestWatcher` を継承していない**（`public class org.junit.rules.Stopwatch implements org.junit.rules.TestRule`。`TestWatcher` は `public abstract class ... implements TestRule` で、両者は無関係な兄弟）。実測している恒久テストが使っているのは `Stopwatch` なので、名指しするクラスをそちらに合わせた |
 | 「テスト本体」を「テストメソッド」へ | **`git grep` の結果、`5391d5c` の ja 配下に「テスト本体」は 0 件、「テストメソッド」は 70 件**。この解説書群に前例のない語を新しく持ち込まない |
 | 「事前処理」の 3 つ目の意味を `@BeforeEach` へ | 追記分の中で「事前処理」が (a) 自動テストフレームワークのフック、(b) ルールの前半部、(c) `@BeforeEach` そのもの、の 3 つの意味で使われていた。(c) は 1 項目目が `@BeforeEach` を明示的に除外していることと衝突するので、`@BeforeEach` に置換した |
-| `getRoot()` の `IllegalStateException` を `.. tip::` へ | 1 項目目の一般則（適用位置がずれる）の一事例であり、同じ項目に置くと 4 文になって他項目より重くなる。落とすには具体的で有用なので、リストの直後の `.. tip::` に逃がした |
+| `getRoot()` の `IllegalStateException` を `.. tip::` へ、**箇条書きの 1 項目目の中に入れて** | 1 項目目の一般則（適用位置がずれる）の一事例であり、同じ項目に地の文で置くと 4 文になって他項目より重くなる。落とすには具体的で有用なので `.. tip::` に逃がした。ただしリストの外（4 項目目の直後）に置くと 4 項目目に係ると読めるため、**1 項目目の項目の中（本文と同じ 2 スペースのインデント）に置いた**。docutils 0.15.2 / 0.22.4 の双方で、tip が 1 項目目の `list_item` の子になること（`item1: ['paragraph', 'tip']`、`item2`〜`item4` は `['paragraph']`）を確認済み |
 | 「JUnit 5 に同等の機能がある場合はそちらを使うこと」を追加 | 修正後のこの節は「静かに壊れる形」を 4 つ列挙することになる。そこまで読んだ利用者が最初に取れる行動を書かないのは不親切である。文面は `TestEventDispatcherExtension#resolveTestRules()` の Javadoc にすでにある |
 
-### 修正4 — rst:420-421 を移行手順に書き換える
+### 修正4 — rst:420-421 を書き換え、節の 2 か所に分けて置く
 
 **理由。** 基底実装が空のリストを返すようになったため、「必ず親クラスの `resolveTestRules()` が返すリストを
 ベースにすること」という指示と、その理由づけ（「そうしない場合、親クラスで登録している `TestRule` が
@@ -414,8 +417,20 @@ design.md §4.4 (5) はこの経路を「最も影響が大きい」としてい
 そこに置いたルールは「テストメソッドを包まない」＋「例外が `RuntimeException` に包まれる」という別の意味論を持つ）。
 代わりに「別の経路で適用される」とだけ書き、メソッド名は出さない。
 
+**この 2 行の置き換え先は、節の中の 2 か所に分かれる。**
+
+* **「基底実装は空のリストを返すため `super` をベースにする必要はない」の 2 行は、説明（rst:416-418）の直後**、
+  つまり修正2 の警告よりも前に置く。コード例から `super.resolveTestRules()` が消えたのを見た読者が
+  「`super` は要らないのか」を確認しに来るのが、この節の主動線である。警告 10 行・制約 21 行を挟んだ先に置くと、
+  最もよく読まれる 2 行が読者から最も遠くなる
+* **移行手順の 2 行は、制約とその帰結であるから制約リストの後ろに残す。** 副次効果として、
+  「JUnit 5 に同等の機能がある場合はそちらを」が節末近くに寄り、結論の位置が正しくなる
+
 **「ルールの適用位置が `@BeforeEach` の後である」という事実は、修正3 の 1 項目目に書いてある。**
-ここで繰り返さず、参照させたうえで移行指示だけを書く。
+ここで繰り返さず、移行指示だけを書く。**ただし、参照の仕方は序数をやめて内容で書いた。**
+原案の「上述の制約の1点目のとおり」（en: `As described in the first restriction above`）は、
+箇条書きを 1 つ足すと黙って壊れる。「ルールが包むのはテストメソッドの実行だけであるため」と、
+参照先の内容そのものを書いてある。
 
 **変更前（rst:420-421。2 行）**
 
@@ -424,15 +439,7 @@ design.md §4.4 (5) はこの経路を「最も影響が大きい」としてい
 そうしない場合、親クラスで登録している ``TestRule`` が再現されなくなる。
 ```
 
-**変更後（5 行）**
-
-```
-なお、 ``resolveTestRules()`` の基底実装は空のリストを返すため、親クラスの ``resolveTestRules()`` が返すリストをベースにする必要はない。
-自動テストフレームワークが内部で使用する ``TestRule`` は、このメソッドとは別の経路で適用される。
-
-また、上述の制約の1点目のとおり、ルールが適用される位置はJUnit 4から変わっている。
-テストの実行前に情報を控えるだけのルール（``TestName`` など）を返却している場合、ルールが設定した値を ``@BeforeEach`` の中で参照しているコードは、テストメソッドの中に移すこと。
-```
+**変更後は合計 5 行**（説明の直後に 2 行 + 空行、節末に 2 行）。**内容は §2 の diff を参照。**
 
 ## 4. en 側の変更の理由（根拠。適用には §2 を使う）
 
@@ -441,8 +448,8 @@ design.md §4.4 (5) はこの経路を「最も影響が大きい」としてい
 | en の修正 | 理由 |
 |---|---|
 | 修正1en（コード例。10 行 → 9 行） | ja 修正1 の理由に同じ |
-| 修正2en（`.. warning::` の挿入。8 行） | ja 修正2 の理由に同じ |
-| 修正3en（制約の追記。20 行） | ja 修正3 の理由に同じ |
+| 修正2en（`.. warning::` の挿入。10 行） | ja 修正2 の理由に同じ |
+| 修正3en（制約の追記。21 行） | ja 修正3 の理由に同じ |
 | 修正4en（注記の書き換え。2 行 → 5 行） | ja 修正4 の理由に同じ |
 
 文体は ja の直訳ではなく、同じファイルの周辺の英文に合わせた
@@ -456,6 +463,9 @@ design.md §4.4 (5) はこの経路を「最も影響が大きい」としてい
 | `so it does not need to be based on ...` | `it` の指示対象が不明。`so you do not need to base your list on ...` にした |
 | `code that refers from ``@AfterEach`` to a resource ...` | 不自然。`code in ``@AfterEach`` that refers to a resource ...` にした |
 | `the body of the test method` | ja の「テスト本体」に対応する語。**`5391d5c` の en 配下に `body of the test` は 0 件**。ja に合わせて `the test method` に統一した |
+| `because it executes the test method in a separate thread` | `it` が直前の `DbAccessTest` を指しうる。`because ``Timeout`` executes the test method in a separate thread` にした |
+| `code in ..., and code that ..., stop working` | 不可算名詞 `code` の並列に複数動詞が付いていた。`..., both **stop working as expected without raising any exception**.` にした |
+| ja の喚起に対応する英文がない | ja は「ので注意すること」を修正3 の 2 項目目で 1 回使うが、en 側は平叙文のままだった。同じファイルの既存ペア（ja rst:96「値は設定しないこと」/ en rst:96 `Don't set any value to the field`）に倣い、`Be careful if you leave the release of resources to the rule: ...` と命令形にした |
 
 ## 5. 各記述の裏づけ
 
@@ -472,7 +482,7 @@ design.md §4.4 (5) はこの経路を「最も影響が大きい」としてい
 | **修正2** — 「タイムアウトが発生してもスレッドには割り込みが行われるだけであり、割り込みに反応しない処理は事後処理の後まで動き続ける」 | **恒久テストはない。**一次情報は `junit-4.13.1-sources` の `org/junit/internal/runners/statements/FailOnTimeout.java:176`（`createTimeoutException()` の中の `thread.interrupt()`）と `:135`（`finally` の `thread.join(1)`）。**両方の分岐を最小再現で実測した**（§3 修正2 の表）。最小再現はタスク #6 の作業中に一時的に作成して実行し、リポジトリには残していない |
 | **修正3 第1項** — ルールの事前処理が `@BeforeEach` の後、事後処理が `@AfterEach` の前 | `TestRuleLifecycleIntegrationTest.java:28-37`。実行ログ `["@BeforeEach", "resource-before", "test", "resource-after", "@AfterEach"]` を表明している |
 | **修正3 第1項** — `@AfterEach` の失敗を `Stopwatch` で観測できない | `StandardTestRuleIntegrationTest.java:173-183`（`Stopwatchで実行時間を計測できるが_AfterEachの失敗はfailedで観測できないことをテスト`）。使っているルールは `:316` の `RecordingStopwatch extends Stopwatch`。実行ログ `["test", "succeeded", "finished", "@AfterEach"]` |
-| **修正3 第1項の `.. tip::`** — `@BeforeEach` から `TemporaryFolder#getRoot()` を呼ぶと `IllegalStateException` | `StandardTestRuleIntegrationTest.java:93-111`。例外型と `the temporary folder has not yet been created` を表明し、実行ログ `["@BeforeEach:root-not-created", "rule-before", "test:root-exists", "rule-after"]` で「適用位置がずれている」と「適用されていない」を区別している |
+| **修正3 第1項の `.. tip::`** — `@BeforeEach` から `TemporaryFolder#getRoot()` を呼ぶと `IllegalStateException` | `StandardTestRuleIntegrationTest.java:93-110`。例外型と `the temporary folder has not yet been created` を表明し、実行ログ `["@BeforeEach:root-not-created", "rule-before", "test:root-exists", "rule-after"]` で「適用位置がずれている」と「適用されていない」を区別している |
 | **修正3 第2項** — `@BeforeEach` が失敗するとルールの事前処理も事後処理も走らない | `TestRuleLifecycleIntegrationTest.java:39-47`。実行ログ `["@BeforeEach", "@AfterEach"]`（`resource-before` も `resource-after` も現れない） |
 | **修正3 第3項** — `base` を呼ばないルールは失敗し、テストメソッドも実行されない | `TestRuleInvocationContractIntegrationTest.java:46-56`。`JUnitException`（`never called invocation`）と実行ログが空であることを表明 |
 | **修正3 第3項** — `base` を 2 回呼ぶルールは、テストメソッドが 1 回実行されたうえで失敗する | `TestRuleInvocationContractIntegrationTest.java:58-68`。`JUnitException`（`multiple times`）と実行ログ `["test"]` |
