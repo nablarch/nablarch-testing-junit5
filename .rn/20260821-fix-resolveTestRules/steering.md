@@ -261,15 +261,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-24
-- **Last completed**: #6（解説書の修正差分案作成）まで完了。#7 は Acceptance criteria の実行結果
-  （7件すべて充足、`mvn -o clean test` = 62件全件成功）をユーザーに提示済み
-- **Next**: `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）でタスク #7（Evaluation sign-off）の
-  判定を受ける
-- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR
-  https://github.com/nablarch/nablarch-testing-junit5/pull/12 。ワーキングツリーはクリーン。
-  公開済みアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
-  Artifact ツールに削除の口がないため、claude.ai/code/artifacts のギャラリーからユーザー側で削除が必要。
-  `document-patch.md` は別リポジトリ `nablarch/nablarch-document` 向けの差分案で、本リポジトリでは完結しない
-  （反映は本モジュールのリリース公開後、`pom.xml` が `6-NEXT-SNAPSHOT` のためバージョン未定）
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
