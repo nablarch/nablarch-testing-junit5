@@ -45,7 +45,6 @@ NTF としての方針判断を含むため、ユーザー（およびそのチ�
 - 前提（未確認）
   - `resolveTestRules()` を実際に利用しているプロジェクトが存在するかどうかは不明。
     存在する場合、ルールの実行位置が変わることによる影響を受ける
-  - 本モジュールが JUnit 6 上で動作するかは未検証（内部 API `org.junit.platform.commons.util.ReflectionUtils` を使用している）
 
 # Rules
 

@@ -154,7 +154,6 @@ JUnit 4 の `TestRule` が再現される、という状態にする。
 
 - **解説書本体（nablarch/nablarch-document）の修正。** 別リポジトリのため、本セッションでは差分案の作成までとする（タスク #6）
 - **NTF 本体（nablarch-testing）の変更。** §5.3 の別課題にあたる。本リポジトリだけでは完結しない
-- **JUnit 6 への対応。** 本モジュールが JUnit 6 上で動作するかは未検証。§2.3 に未確認事項として記録する
 - **`@Rule` の自動収集。** 利用者が明示的に `resolveTestRules()` へ渡す方式は変えない（内部ルールの収集に
   反射を使う案は §4.5 (2) で比較している）
 
@@ -330,10 +329,6 @@ JUnit 5 側の呼び出しは `TestMethodTestDescriptor#execute` が `invokeTest
 **確認済みの事実と混ざらないよう、独立した項として置く。** ここに挙げたものは実物で確かめていない。
 関連する事実に出典を添えてある場合も、その出典が未確認の部分まで裏づけているわけではない。
 
-- 本モジュールが JUnit 6 上で動作するか（内部 API 使用のため無検証では判断できない）
-- JUnit 6 における `junit-vintage-engine` の削除時期。非推奨であることは確認済み
-  （migrating-from-junit4.adoc `:21-23` "The JUnit Vintage engine is deprecated ..."）だが、
-  削除時期の記載は見つからなかった
 - `resolveTestRules()` を実際に利用しているプロジェクトの有無と規模
 - 「`getRequiredTestMethod()` が返す `Method` を拡張が自分で `invoke` するとテストが 2 回走る」ことの実測。
   JUnit 5 側の呼び出しが止まらないことは §2.2 のとおり出典があるが、2 回走る様子そのものは観測していない
@@ -896,8 +891,8 @@ thread local. connection name = [transaction]` という固有のメッセージ
 
 `5b47d2c` で追加した `JupiterEngineRunner`（183 行）は `org.junit.jupiter.engine.JupiterTestEngine` を直接使っていた。
 これは JUnit の内部 API である（`junit-jupiter-engine-5.11.0.jar` の `JupiterTestEngine.class` を `javap -v` に掛けると
-`RuntimeVisibleAnnotations` が `org.apiguardian.api.API(status=INTERNAL, since="5.0")`）。**§2.3 が「本モジュールが
-JUnit 6 上で動作するか」を未確認に置いている理由が内部 API 使用そのものなのに、テスト側にその依存を増やしていた。**
+`RuntimeVisibleAnnotations` が `org.apiguardian.api.API(status=INTERNAL, since="5.0")`）。**INTERNAL API は
+JUnit 側の都合で予告なく変更・削除されうるのに、テスト側にその依存を増やしていた。**
 
 **置き換えは `c06e4da`「build: JupiterEngineRunnerをjunit-platform-launcherベースに置き換える」で完了した。**
 `pom.xml` が `junit-platform-launcher` を test スコープで宣言し（版は junit-bom から。§2.1）、
