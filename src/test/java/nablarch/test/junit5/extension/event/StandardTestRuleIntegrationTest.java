@@ -140,6 +140,24 @@ public class StandardTestRuleIntegrationTest extends RuleIntegrationTestBase {
         assertThat(executionLog, is(Collections.singletonList("test")));
     }
 
+    /**
+     * {@link MultipleFailureException#assertEmpty(java.util.List)} は、収集したエラーが 1 件のときだけ
+     * その例外をそのまま再スローする。
+     * 収集したエラーが 2 件以上のときとは失敗の原因となる例外の型が変わるため、両方を固定する。
+     */
+    @Test
+    void ErrorCollectorが収集したエラーが1件の場合はその例外がそのまま失敗の原因になることをテスト() {
+        errorCollector = new ErrorCollector();
+        ConfigurableTestRuleExtension.setTestRules(errorCollector);
+
+        JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(SingleErrorCollectingTestFixture.class);
+
+        Throwable failure = summary.getOnlyFailure();
+        assertThat(failure, is(instanceOf(AssertionError.class)));
+        assertThat(failure.getMessage(), is("1 件目のエラー"));
+        assertThat(executionLog, is(Collections.singletonList("test")));
+    }
+
     @Test
     void Verifierが投げた例外でテストが失敗することをテスト() {
         ConfigurableTestRuleExtension.setTestRules(new FailingVerifier());
@@ -249,6 +267,18 @@ public class StandardTestRuleIntegrationTest extends RuleIntegrationTestBase {
             executionLog.add("test");
             errorCollector.addError(new AssertionError("1 件目のエラー"));
             errorCollector.addError(new AssertionError("2 件目のエラー"));
+        }
+    }
+
+    /**
+     * テスト本体で {@link #errorCollector} にエラーを 1 件だけ収集する、実行対象のテストクラス。
+     */
+    @ExtendWith(ConfigurableTestRuleExtension.class)
+    static class SingleErrorCollectingTestFixture {
+        @Test
+        void test() {
+            executionLog.add("test");
+            errorCollector.addError(new AssertionError("1 件目のエラー"));
         }
     }
 

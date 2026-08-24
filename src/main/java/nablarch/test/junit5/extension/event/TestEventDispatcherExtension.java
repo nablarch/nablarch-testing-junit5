@@ -32,7 +32,7 @@ import java.util.function.Predicate;
  * 各 Extension はこのクラスを継承して作成することで、共通する部分の処理を省略できる。
  * </p>
  *
- * <h2>JUnit 4 の {@link TestRule} の再現について</h2>
+ * <h2 id="testrule-emulation">JUnit 4 の {@link TestRule} の再現について</h2>
  * <p>
  * このクラスは JUnit 4 の {@link TestRule} を 2 つの経路で適用する。
  * 利用者が {@link #resolveTestRules()} で返したルールは、
@@ -41,136 +41,126 @@ import java.util.function.Predicate;
  * {@link #beforeEach(ExtensionContext)} の中で、テストメソッドの実行を包まない形で適用される。
  * </p>
  * <p>
- * JUnit 5 は JUnit 4 の {@link TestRule} をネイティブにはサポートしないため、
- * この再現には以下の制約が付く。
+ * JUnit 5 に同等の機能がある場合は、ルールを移植するのではなく JUnit 5 の機能を使用すること。
  * {@link org.junit.rules.Timeout} に対する {@code @Timeout} 、
- * {@link org.junit.rules.ExternalResource} / {@link org.junit.rules.TemporaryFolder} に対する
- * {@link BeforeEachCallback} / {@code @TempDir} 、
- * {@link org.junit.rules.ExpectedException} に対する
- * {@code assertThrows}
- * のように JUnit 5 に同等の機能がある場合は、ルールを移植するのではなく JUnit 5 の機能を使用すること。
+ * {@link org.junit.rules.ExternalResource} に対する
+ * {@link BeforeEachCallback} と {@link AfterEachCallback} の組 、
+ * {@link org.junit.rules.TemporaryFolder} に対する {@code @TempDir} 、
+ * {@link org.junit.rules.ExpectedException} に対する {@code assertThrows}
+ * がこれにあたる。
+ * </p>
+ * <p>
+ * それでもルールを移植する場合、 JUnit 5 は JUnit 4 の {@link TestRule} を
+ * ネイティブにはサポートしないため、この再現には以下の制約が付く。
+ * なお以降で {@code base} と書いているのは、
+ * {@link TestRule#apply(Statement, Description)} の第 1 引数、
+ * すなわちルールが包む対象の {@link Statement} である。
  * </p>
  *
- * <h3>どのルールが使えて、何が使えないか</h3>
+ * <h3 id="rule-support-table">どのルールが使えて、何が使えないか</h3>
  * <table class="striped">
- * <caption>JUnit 4 が標準で提供する主な {@link TestRule} を {@link #resolveTestRules()} で返したときの結果</caption>
+ * <caption>JUnit 4 が標準で提供する主な {@link TestRule} を {@link #resolveTestRules()} で返し、
+ * {@code @Test} / {@code @ParameterizedTest} / {@code @RepeatedTest} のテストメソッドに適用したときの結果</caption>
  * <thead>
  * <tr><th scope="col">ルール</th><th scope="col">結果</th><th scope="col">備考</th></tr>
  * </thead>
  * <tbody>
- * <tr>
- *   <td>{@link org.junit.rules.Timeout}</td>
- *   <td>動く</td>
- *   <td>テストがタイムアウトする。ただしテスト本体が別スレッドで実行される副作用があり、
- *       {@link nablarch.test.junit5.extension.db.DbAccessTestExtension} とは併用できない(下記 (5))</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.ExternalResource}</td>
- *   <td>動く</td>
- *   <td>{@code before()} が {@code @BeforeEach} の後、 {@code after()} が {@code @AfterEach} の前に
- *       実行される(下記 (2))</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.TemporaryFolder}</td>
- *   <td>動く</td>
- *   <td>上記と同じ。 {@code @BeforeEach} から {@link org.junit.rules.TemporaryFolder#getRoot()} を
- *       呼ぶと {@link IllegalStateException} が発生する(下記 (2))</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.ExpectedException}</td>
- *   <td>動く</td>
- *   <td>&#45;</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.ErrorCollector}</td>
- *   <td>動く</td>
- *   <td>収集したエラーでテストが失敗する。ただし失敗の原因となる例外は
- *       {@link org.junit.runners.model.MultipleFailureException} であり、 {@link AssertionError} ではない</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.Verifier}</td>
- *   <td>動く</td>
- *   <td>{@code verify()} が投げた例外がそのまま伝播してテストが失敗する</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.TestWatcher} / {@link org.junit.rules.Stopwatch}</td>
- *   <td>動く</td>
- *   <td>{@code @AfterEach} の外側で実行されるため、 {@code @AfterEach} が失敗しても
- *       {@code succeeded()} が呼ばれ、 {@code failed()} は呼ばれない(下記 (2))</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.RuleChain}</td>
- *   <td>動く</td>
- *   <td>指定した入れ子の順序が保たれる</td>
- * </tr>
- * <tr>
- *   <td>{@link org.junit.rules.DisableOnDebug}</td>
- *   <td>動く</td>
- *   <td>&#45;</td>
- * </tr>
- * <tr>
- *   <td>{@code base} を呼ばないルール(スキップ系)</td>
- *   <td><b>使えない</b></td>
- *   <td>テストが例外で失敗する(下記 (1))</td>
- * </tr>
- * <tr>
- *   <td>{@code base} を 2 回以上呼ぶルール(リトライ系)</td>
- *   <td><b>使えない</b></td>
- *   <td>テスト本体が 1 回実行されたうえで、テストが例外で失敗する(下記 (1))</td>
- * </tr>
+ * <tr><td>{@link org.junit.rules.Timeout}</td><td><b>条件つき</b></td>
+ *     <td>テストはタイムアウトするが、 {@link nablarch.test.junit5.extension.db.DbAccessTestExtension}
+ *         とは併用できない(→ <a href="#limitation-timeout-thread">別スレッド実行</a>)</td></tr>
+ * <tr><td>{@link org.junit.rules.ExternalResource}</td><td>動く</td>
+ *     <td>→ <a href="#limitation-wrapping">ルールが包む範囲</a></td></tr>
+ * <tr><td>{@link org.junit.rules.TemporaryFolder}</td><td>動く</td>
+ *     <td>→ <a href="#limitation-wrapping">ルールが包む範囲</a></td></tr>
+ * <tr><td>{@link org.junit.rules.ExpectedException}</td><td>動く</td>
+ *     <td>-</td></tr>
+ * <tr><td>{@link org.junit.rules.ErrorCollector}</td><td>動く</td>
+ *     <td>収集したエラーでテストが失敗する。失敗の原因となる例外は、収集したエラーが 1 件のときはその例外そのもの、
+ *         2 件以上のときは {@link org.junit.runners.model.MultipleFailureException}</td></tr>
+ * <tr><td>{@link org.junit.rules.Verifier}</td><td>動く</td>
+ *     <td>{@code verify()} が投げた例外がそのまま伝播してテストが失敗する</td></tr>
+ * <tr><td>{@link org.junit.rules.TestWatcher} / {@link org.junit.rules.Stopwatch}</td><td>動く</td>
+ *     <td>→ <a href="#limitation-wrapping">ルールが包む範囲</a></td></tr>
+ * <tr><td>{@link org.junit.rules.RuleChain}</td><td>動く</td>
+ *     <td>指定した入れ子の順序が保たれる</td></tr>
+ * <tr><td>{@link org.junit.rules.DisableOnDebug}</td><td><b>条件つき</b></td>
+ *     <td>デバッグ実行中は、包んだルールが例外にもならないまま無効化される
+ *         (このルール自身の仕様であり、再現機構による制約ではない)</td></tr>
+ * <tr><td>{@code base} を呼ばないルール(スキップ系)</td><td><b>使えない</b></td>
+ *     <td>テストが例外で失敗する(→ <a href="#limitation-invocation-count">{@code base} の呼び出し回数</a>)</td></tr>
+ * <tr><td>{@code base} を 2 回以上呼ぶルール(リトライ系)</td><td><b>使えない</b></td>
+ *     <td>テスト本体が 1 回実行されたうえで、テストが例外で失敗する
+ *         (→ <a href="#limitation-invocation-count">{@code base} の呼び出し回数</a>)</td></tr>
  * </tbody>
  * </table>
  *
- * <h3>再現に付く制約</h3>
+ * <h3 id="emulation-limitations">再現に付く制約</h3>
  * <p>
- * 上の表で「動く」としたルールにも、 (2)(3)(4)(8) は等しくかかる。
+ * 上の表は、 {@code @Test} / {@code @ParameterizedTest} / {@code @RepeatedTest} の
+ * テストメソッドに適用したときの結果である。
+ * 表で「動く」「条件つき」としたルールにも、
+ * <a href="#limitation-wrapping">ルールが包む範囲</a>、
+ * <a href="#limitation-before-each-failure">前処理が失敗したときのルールの後処理</a>、
+ * <a href="#limitation-test-factory">{@code @TestFactory}</a>、
+ * <a href="#limitation-nested">{@code @Nested}</a> の 4 つは、
+ * ルールの種類に関係なく等しくかかる。
+ * <a href="#limitation-description">{@code Description} が実行を区別しないこと</a>は、
+ * {@code @ParameterizedTest} / {@code @RepeatedTest} のときにかかる。
  * </p>
  * <ol>
- * <li>
+ * <li id="limitation-invocation-count">
  *   <b>{@code base} を呼ばないルールと、 2 回以上呼ぶルールは使えない。</b><br>
  *   {@link InvocationInterceptor} は、テストメソッドの呼び出しをちょうど 1 回行うことを実装に要求している。
  *   この再現機構はルールが {@code base.evaluate()} を呼ぶ回数を制御できないため、
- *   呼ばないルールを渡すとテストは {@code JUnitException}({@code never called invocation})で失敗し、
+ *   呼ばないルールを渡すとテストは
+ *   {@link org.junit.platform.commons.JUnitException}({@code never called invocation})で失敗し、
  *   2 回以上呼ぶルールを渡すとテスト本体が 1 回実行されたうえで
- *   {@code JUnitException}({@code called invocation multiple times})で失敗する。<br>
+ *   {@link org.junit.platform.commons.JUnitException}({@code called invocation multiple times})で失敗する。<br>
  *   ただし、ルールが {@code base} を呼ぶ<b>前</b>に例外を投げた場合は、その例外がそのまま伝播する
- *   ({@code JUnitException} にはならない)。
+ *   ({@link org.junit.platform.commons.JUnitException} にはならない)。
  * </li>
- * <li>
+ * <li id="limitation-wrapping">
  *   <b>ルールが包むのはテストメソッドの呼び出しだけであり、
  *   {@code @BeforeEach} / {@code @AfterEach} や NTF の前後処理は含まれない。</b><br>
- *   JUnit 5 には、自身の {@link BeforeEachCallback} を
+ *   JUnit 5 には、 {@code @BeforeEach} や Extension の {@link BeforeEachCallback} まで含めて
  *   {@link Statement} で包む手段がない。テストメソッドの呼び出しを引数で受け取れる拡張ポイントは
  *   {@link InvocationInterceptor} だけであり、そこは {@code @BeforeEach} より後に呼ばれる。
  *   そのため、 JUnit 4 ではルールが {@code @Before} / {@code @After} の外側にあったのに対し、
  *   ここではルールの前処理が {@code @BeforeEach} の後、後処理が {@code @AfterEach} の前に実行される。<br>
  *   {@link org.junit.rules.TemporaryFolder} が作った一時ファイルを {@code @AfterEach} から参照するコードや、
  *   {@code @AfterEach} の失敗を {@link org.junit.rules.TestWatcher} で観測するコードは、
- *   {@link IllegalStateException} が発生する場合を除き、
  *   <b>例外にならないまま期待どおりに動かなくなる</b>ことに注意すること。
+ *   後者は、ルールの後処理が {@code @AfterEach} より前に完了しているため、
+ *   {@code @AfterEach} が失敗しても {@code succeeded()} が呼ばれ {@code failed()} は呼ばれない、という形で現れる。<br>
+ *   これに対し、 {@code @BeforeEach} から {@link org.junit.rules.TemporaryFolder#getRoot()} を呼んだ場合は、
+ *   一時フォルダがまだ作られていないため {@link IllegalStateException} が発生する。
  * </li>
- * <li>
+ * <li id="limitation-before-each-failure">
  *   <b>{@code @BeforeEach}(および {@link #beforeEach(ExtensionContext)})が失敗すると、
  *   ルールは前処理も後処理も一切実行されない。</b><br>
- *   (2) のとおりルールを組み立てられるのはテストメソッドの呼び出し時であり、
+ *   <a href="#limitation-wrapping">ルールが包む範囲</a>のとおり
+ *   ルールを組み立てられるのはテストメソッドの呼び出し時であり、
  *   JUnit 5 は前処理が失敗するとテストメソッドの呼び出しに到達しないためである。
  *   JUnit 4 では {@code @Before} が失敗してもルールの後処理は実行されていた。<br>
  *   NTF 側の後処理({@link #afterEach(ExtensionContext)})は実行されるため、
  *   実行されないのは利用者のルールの後処理だけである。
  *   リソースの解放をルールに任せていると、前処理が失敗したときにだけ解放漏れが起きる。
  * </li>
- * <li>
+ * <li id="limitation-description">
  *   <b>ルールへ渡す {@link Description} は、テストクラス・テストメソッド名・
  *   テストメソッドのアノテーションから構築する。</b><br>
  *   {@link Description#getAnnotation(Class)} で振る舞いを切り替えるルールも動作する。<br>
  *   ただし {@code @ParameterizedTest} や {@code @RepeatedTest} では、
- *   <b>全ての実行に対して同一の {@link Description} が渡される。</b>
- *   {@link Description} が持つのはテストクラスとメソッド名だけで、何回目の実行かを表す情報がないためである
- *   (JUnit 4 の {@code Parameterized} は {@code test[0]} のように区別できた)。
+ *   <b>全ての実行に対して内容が等しい {@link Description} が渡される。</b>
+ *   この再現機構が {@link Description} に載せるのはテストクラス・メソッド名・メソッドのアノテーションだけで、
+ *   何回目の実行かを表す情報がないためである
+ *   (JUnit 4 の {@link org.junit.runners.Parameterized} は {@code test[0]} のように区別できた)。
  *   実行そのものは {@link ExtensionContext#getDisplayName()} で区別できるが、
- *   {@link Description} では区別できないため、実行ごとに状態を持つルールは使用できない。
+ *   {@link Description} では区別できないため、 {@link Description} で実行を見分けて
+ *   状態を切り替えるルールは使用できない
+ *   ({@link org.junit.rules.Stopwatch} のように、ルールが実行ごとに状態を持つこと自体は問題なく動作する)。
  * </li>
- * <li>
+ * <li id="limitation-timeout-thread">
  *   <b>{@link org.junit.rules.Timeout} と {@link nablarch.test.junit5.extension.db.DbAccessTestExtension} は併用できない。</b><br>
  *   {@link org.junit.rules.Timeout} はテスト本体を {@code "Time-limited test"} という別スレッドで実行するが、
  *   NTF の DB コネクションとトランザクションは {@link #beforeEach(ExtensionContext)} を実行したスレッドの
@@ -178,28 +168,30 @@ import java.util.function.Predicate;
  *   取得時の例外を捕捉していると、<b>この状態でもテストは成功する。</b><br>
  *   同じ理由で、 {@code @BeforeEach} などで {@link ThreadLocal} に束縛した値も、
  *   テスト本体からは見えなくなる
- *   ({@code ThreadContext} は {@link InheritableThreadLocal} のため引き継がれるが、
- *   テスト本体が書き込んだ値は元のスレッドへは戻らない)。
+ *   ({@link nablarch.core.ThreadContext} は {@link InheritableThreadLocal} のため引き継がれるが、
+ *   テスト本体が書き込んだ値は元のスレッドへは戻らない)。<br>
+ *   JUnit 5 の {@code @Timeout} は既定でテスト本体を別スレッドで実行しないため、この問題は起きない。
  * </li>
- * <li>
- *   <b>{@code @TestFactory} が生成した {@code DynamicTest} にはルールが適用されず、
+ * <li id="limitation-test-factory">
+ *   <b>{@code @TestFactory} が生成した {@link org.junit.jupiter.api.DynamicTest} にはルールが適用されず、
  *   例外にもならないまま実行される。</b><br>
  *   このクラスがオーバーライドしているのは
  *   {@link #interceptTestMethod(Invocation, ReflectiveInvocationContext, ExtensionContext)} と
  *   {@link #interceptTestTemplateMethod(Invocation, ReflectiveInvocationContext, ExtensionContext)}
  *   の 2 つだけである。
- *   {@code @TestFactory} メソッドを包んでも、包まれるのは動的テストを生成する {@code Stream} の生成だけで、
- *   動的テストの実行は包まれないため、対応していない。
+ *   {@code @TestFactory} メソッドを包んでも、包まれるのは動的テストを生成する
+ *   {@link java.util.stream.Stream} の生成だけで、動的テストの実行は包まれないため、対応していない。
  * </li>
- * <li>
- *   <b>{@code @Nested} なテストクラスを持つテストクラスでは正しく動作しない。</b><br>
+ * <li id="limitation-nested">
+ *   <b>{@code @Nested} なテストクラスを持つテストクラスでは正しく動作しないため、
+ *   このクラスを継承した Extension を適用するテストクラスでは {@code @Nested} を使用しないこと。</b><br>
  *   Extension のインスタンスが外側のクラスと入れ子のクラスとで共有されるため、
  *   {@link #support} フィールドが後から生成されたサポートクラスのインスタンスで上書きされ、
  *   ルールが参照するサポートクラスとテスト本体が参照するものが別になる。
  *   これは {@link TestRule} の再現に固有の問題ではなく、
  *   {@link #support} フィールドを 1 つしか持たないことによるものである。
  * </li>
- * <li>
+ * <li id="limitation-exception">
  *   <b>ルールが投げた例外の扱いは、どちらのメソッドで返したかによって変わる。</b><br>
  *   {@link #resolveTestRules()} で返したルールが投げた例外は、包まれずにそのまま伝播する。
  *   {@link #resolveInternalTestRules()} で返したルールが投げた例外は、
@@ -210,7 +202,7 @@ import java.util.function.Predicate;
  * </li>
  * </ol>
  *
- * <h3>{@link InvocationInterceptor} の他の default メソッドについて</h3>
+ * <h3 id="other-interceptor-methods">{@link InvocationInterceptor} の他の default メソッドについて</h3>
  * <p>
  * このクラスが {@link InvocationInterceptor} を実装しているため、
  * {@link #interceptTestMethod(Invocation, ReflectiveInvocationContext, ExtensionContext)} と
@@ -223,6 +215,8 @@ import java.util.function.Predicate;
  * このクラスを継承した Extension からオーバーライドできる状態になっている。
  * これらは {@link TestRule} の再現には関与しないが、
  * オーバーライドすると JUnit 5 によるテストの実行そのものに割り込むことになる。
+ * なお {@code interceptDynamicTest} の 2 引数のオーバーロードは
+ * {@code @Deprecated} であり、 API の状態も {@code DEPRECATED}(since 5.8)である。
  * </p>
  * @author Tanaka Tomoyuki
  */
@@ -303,6 +297,11 @@ public abstract class TestEventDispatcherExtension implements
 
     /**
      * テストメソッドの前処理を実行する。
+     * <p>
+     * このメソッドをオーバーライドする場合は、必ず {@code super.beforeEach(context)} を呼び出すこと。
+     * 呼び出さないと、 NTF が内部で使用する {@link TestRule} の適用も
+     * NTF の前処理({@link TestEventDispatcher#dispatchEventOfBeforeTestMethod()})も実行されない。
+     * </p>
      * @param context コンテキスト
      * @throws Exception 例外がスローされた場合
      */
@@ -494,15 +493,15 @@ public abstract class TestEventDispatcherExtension implements
      * リストにして返却するように実装する。以下に実装例を示す。
      * </p>
      * <pre>{@code
+     * @Override
      * protected List<TestRule> resolveTestRules() {
      *     // 独自の TestRule を返却する
      *     return Collections.singletonList(((YourSupport)support).yourTestRule);
      * }
      * }</pre>
      * <p>
-     * 基底実装は空のリストを返す。
      * NTF が内部で使用するルールは {@link #resolveInternalTestRules()} が返すため、
-     * {@code super.resolveTestRules()} が返すリストをベースにする必要はない。
+     * NTF が提供する Extension はこのメソッドをオーバーライドしておらず、基底実装は常に空のリストを返す。
      * </p>
      * <p>
      * 複数のルールを返す場合、リストの先頭にあるルールほど内側になり、末尾にあるルールが最も外側になる
@@ -515,13 +514,15 @@ public abstract class TestEventDispatcherExtension implements
      * </p>
      * <p>
      * <b>ルールの適用には制約がある。</b>
-     * どのルールが使えるか、使えるルールに何の制約が付くかは、
-     * {@link TestEventDispatcherExtension このクラスの説明}を参照すること。
-     * 特に、ルールが包むのはテストメソッドの実行だけであり
-     * {@code @BeforeEach} / {@code @AfterEach} は含まれないこと、
-     * {@code @TestFactory} が生成した {@code DynamicTest} にはルールが適用されないことに注意すること。
-     * また、 JUnit 5 に同等の機能がある場合は、
-     * ルールを移植するのではなく JUnit 5 の機能を使用すること。
+     * どのルールが使えるか、使えるルールに何の制約が付くかは
+     * <a href="#testrule-emulation">JUnit 4 の {@code TestRule} の再現について</a>を参照すること。
+     * 特に、ルールが包むのはテストメソッドの実行だけであること、
+     * {@code @BeforeEach} が失敗するとルールの後処理が実行されず解放漏れが起きること、
+     * {@link org.junit.rules.Timeout} が
+     * {@link nablarch.test.junit5.extension.db.DbAccessTestExtension} と併用できないこと、
+     * {@code @TestFactory} が生成した {@link org.junit.jupiter.api.DynamicTest} には
+     * ルールが適用されないことの 4 点は、いずれもそれと分かる例外が出ないまま問題が起きる。
+     * また、 JUnit 5 に同等の機能がある場合は、ルールを移植するのではなく JUnit 5 の機能を使用すること。
      * </p>
      * @return テストメソッドの実行に適用したい JUnit 4 の {@link TestRule} のリスト({@code null}不可)
      */
