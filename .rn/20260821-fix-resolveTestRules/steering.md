@@ -261,8 +261,18 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-08-24
+- **Last completed**: 未解決 4・5 の両方を確定させた。4（`@TestFactory` の非互換記載漏れ）は、
+  `main` でもルールが `NOOP_STATEMENT` を包むだけでテスト本体は一度も包んでいなかった（一次情報で確認）ため
+  「動いていたものが動かなくなる」という前回の指摘を撤回し、追記不要と訂正。5（design.md 1116 行の目安超過）は
+  タスク #2 レビュー時の前例（`checks/2.md`）に倣い、決定根拠を削らず超過を許容する判断で確定
+- **Next**: `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）でタスク #7（Evaluation sign-off）の
+  判定を受ける。ドキュメント側の変更は発生していない
+- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR
+  https://github.com/nablarch/nablarch-testing-junit5/pull/12 。ワーキングツリーはクリーン。
+  未解決 4・5 は解消済みで、#7 の判定待ちのみが残る。
+  公開済みアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
+  Artifact ツールに削除の口がないため、claude.ai/code/artifacts のギャラリーからユーザー側で削除が必要。
+  `document-patch.md` は別リポジトリ `nablarch/nablarch-document` 向けの差分案で、本リポジトリでは完結しない
+  （反映は本モジュールのリリース公開後、`pom.xml` が `6-NEXT-SNAPSHOT` のためバージョン未定）
