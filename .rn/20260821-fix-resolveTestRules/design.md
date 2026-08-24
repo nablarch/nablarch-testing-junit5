@@ -680,12 +680,27 @@ override しているものは NTF 内には存在しない（`grep -rn "beforeT
 **この観測は使い捨てのプローブで行っており、再現物は残っていない**（§4.2 のプロトタイプと同じ扱い）。
 
 壊れるのは `support` の側である。`@Nested` クラスを足すと
-**Extension のインスタンスが外側クラスと入れ子クラスで共有される**。同じプローブで
-`postProcessTestInstance` の中の `System.identityHashCode(this)` が 3 回とも同一値になり、
-`System.identityHashCode(support)` は 3 回とも別値になることを観測した。
-`postProcessTestInstance`（`TestEventDispatcherExtension.java:60-62`）は両方のインスタンスに対して
-呼ばれるため、`support` フィールド（`:58`、代入は `:62`）が後勝ちで上書きされ、
-ルールが `support` から取ったものとテスト本体が参照するものが別になる。
+**Extension のインスタンスが外側クラスと入れ子クラスで共有される**。`postProcessTestInstance`
+（`TestEventDispatcherExtension.java:60-62`）は外側・入れ子の両方のインスタンスに対して呼ばれるため、
+`support` フィールド（`:58`、代入は `:62`）が後勝ちで上書きされる。ただし、これだけでは
+**まだ実害にならない**。 `resolveTestRules()` はテストメソッドの直前（`interceptTestMethod`）に
+呼ばれ、そのテストに対応するインスタンスの `postProcessTestInstance` は必ずその直前に完了しているため、
+単純な「外側 1 件・入れ子 1 件」の構成では、ルールが読む `support` とテスト本体が読む `support` は
+一致する（後述の恒久テストで、外側テストではこの一致が保たれることを確認済み）。
+
+**実害が出るのは、テスト本体が「自分自身のインジェクション先フィールド」ではなく
+「外側インスタンスのインジェクション先フィールド」（`Outer.this.support` 相当）を参照する場合である。**
+`@Nested` クラスは外側クラスを継承しないため、フィールドをインスタンスごとに個別に宣言せず
+外側（またはその親であるベースクラス）だけに宣言する典型的な構成で、これに該当する。この場合、
+テスト本体が読む値は「外側インスタンス自身の `postProcessTestInstance` 実行時点の `support`」に
+固定される（フィールドへの代入はスナップショットのため、後からの上書きの影響を受けない）のに対し、
+ルールが読む値は「入れ子インスタンスの `postProcessTestInstance` が最後に上書きした `support`」になり、
+両者が食い違う。
+
+**この食い違いは `NestedTestRuleSupportIntegrationTest` で実測・恒久化した**（`support` に一意な `id` を
+持たせ、ルールが記録した `id` とテスト本体が記録した `id` を突き合わせる形。3 回連続で同一の結果
+`[outerTest-rule:1, outer-test:1, innerTest-rule:3, inner-test:2]` を得ており、外側テストは一致・
+入れ子テストは不一致（`3` ≠ `2`）が安定して再現する）。
 **これは TestRule 再現機構の問題ではなく、`support` フィールドを 1 枠しか持たない設計に起因する。
 1-A 以前から存在する課題であり、1-A を選んだことで受け入れた非互換ではない。**
 よって**タスク #4 の対象外とし**、`support` の持ち方（`ExtensionContext.Store` へ移すなど）は別課題として立てる。
@@ -878,6 +893,13 @@ grep して確認した。`final` の出現は `NOOP_STATEMENT` の `static fina
   将来 `interceptTestFactoryMethod` / `interceptDynamicTest` に手を入れるとき、このテストが出発点を示す
 - `RestTestExtension#setUpDb()` の実行時点で `testDescription` が設定済みであること
   （`RestTestExtensionTest` に 1 件追加。§1.3 の条件 2 を固定する）
+
+**未解決の再開時（2026-08-24）に追加したもの。**
+
+- `@Nested` を持つテストクラスで、ルールが参照する `support` とテスト本体が参照する `support` が
+  食い違うこと（`NestedTestRuleSupportIntegrationTest` 1 件。§4.4 (7)）。**対応しない現状を固定する
+  特性テストであり、「タスク #4 の対象外」という判断は変わらない。** `support` の持ち方を変える
+  （`ExtensionContext.Store` へ移すなど）ときは、このテストが出発点を示す
 
 **`Timeout` × `DbAccessTestExtension` を恒久テストにしたのは、「(a) 実 DB が要る、(b) 失敗が環境設定の誤りと区別
 しにくい」として除外していた以前の判断を覆した結果である。** (a) — `231eaa9` の `src/test` に
