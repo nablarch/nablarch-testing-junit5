@@ -227,13 +227,13 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [ ] design.md §6 が挙げる 4 か所（既存 3 か所の修正 + 新規 1 か所の追加）の修正差分案を作成する
-- [ ] `en/` の対応箇所の修正差分案を作成する
-- [ ] 本リポジトリでは反映できないこと、および反映先を明記する
-- [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
+- [x] design.md §6 が挙げる 4 か所（既存 3 か所の修正 + 新規 1 か所の追加）の修正差分案を作成する
+- [x] `en/` の対応箇所の修正差分案を作成する
+- [x] 本リポジトリでは反映できないこと、および反映先を明記する
+- [x] self-check (OK/NG per completion criterion, record in checks/6.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
 
 **Completion criteria**:
 
