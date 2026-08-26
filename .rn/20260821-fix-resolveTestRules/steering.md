@@ -261,8 +261,25 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: -
-- **Last completed**: -
-- **Next**: -
-- **Notes**: -
+- **Status**: paused
+- **Date**: 2026-08-26
+- **Last completed**: #6（解説書の修正差分案作成）。#7 は Acceptance criteria の実行結果を提示済みで判定待ち
+- **Next**: `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）でタスク #7（Evaluation sign-off）の判定を受ける
+- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR
+  https://github.com/nablarch/nablarch-testing-junit5/pull/12 （push 済み・ツリークリーン）。
+  `mvn -o clean test` = 78 件全件成功。
+  解説書（別リポジトリ `nablarch/nablarch-document`）への申し送りは
+  `.rn/20260821-fix-resolveTestRules/document-patch.md`（反映は本モジュールのリリース公開後、
+  `pom.xml` が `6-NEXT-SNAPSHOT` のためバージョン未定）。
+  NTF Step 4 の外部依頼（指示書 `nablarch-document`
+  `f00e9a6:.rn/20260724-ntf-yaml-support/ntf-step4-04-nablarch-testing-junit5.md`）は同ブランチ上で完了。
+  **前回 Notes にあった「`TimeoutRuleIntegrationTest.java:27`/`:45`/`:50` の解説書参照をどうするか
+  ユーザー判断待ち」は解消済み。** テスト側から別リポジトリの解説書を指す参照は成立しない
+  （指される側の変更を指す側が知りようがなく、`mvn test` も検証しない）との判断で、
+  `src` 配下の解説書参照 4 件（同ファイル `:27`/`:45`/`:50` と
+  `RuleAnnotationIntegrationTest.java:24`）を `1b48607` で削除した。
+  ディレクターへの報告に未反映の申し送りは、指示書の「表にない不一致は直さず報告」の例外として
+  ユーザー指示で行った次の 2 件。(1) `8a16563`（`:115` の解説書参照の削除と改行コードの CRLF 統一）。
+  (2) `1b48607`（上記 4 件の削除、および `document-patch.md:479` のメソッド名・行番号・テスト件数の修正）。
+  公開済みアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
+  Artifact ツールに削除の口がないため、claude.ai/code/artifacts のギャラリーからユーザー側で削除が必要。
