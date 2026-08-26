@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.is;
  * <p>
  * {@code @Rule} は JUnit 4 のランナーが解釈するアノテーションであり、 JUnit 5 は解釈しない。
  * ルールを適用するには {@link TestEventDispatcherExtension#resolveTestRules()} を
- * オーバーライドして返す必要がある、というのが解説書の前提である。
+ * オーバーライドして返す必要がある。
  * ここでは同じサポートクラス・同じルールに対して、
  * {@link TestEventDispatcherExtension#resolveTestRules()} を実装しない Extension と
  * 実装した Extension の 2 通りを実行し、差がその実装の有無だけであることを示す。

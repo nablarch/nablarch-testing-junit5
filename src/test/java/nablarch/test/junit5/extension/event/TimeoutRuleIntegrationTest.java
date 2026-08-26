@@ -24,7 +24,7 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * 解説書が例に挙げている {@link Timeout} を
+ * {@link Timeout} を
  * {@link TestEventDispatcherExtension#resolveTestRules()} で追加したときの振る舞いをテストする。
  * <p>
  * {@link Timeout} はテスト本体を別スレッドで実行するため、
@@ -42,12 +42,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
 
     /**
-     * タイムアウト値(ミリ秒)。解説書の例と同じ値を使用する。
+     * タイムアウト値(ミリ秒)。
      */
     private static final long TIMEOUT_MILLIS = 1000L;
 
     /**
-     * タイムアウト値より長いスリープ時間(ミリ秒)。解説書の例と同じ値を使用する。
+     * タイムアウト値より長いスリープ時間(ミリ秒)。
      */
     private static final long SLEEP_MILLIS = 2000L;
 
