@@ -248,7 +248,7 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 
 **Steps**:
 
-- [x] Acceptance criteria の実行結果をユーザーに提示する（7 件すべて充足。`mvn -o clean test` = 62 件全件成功）
+- [x] Acceptance criteria の実行結果をユーザーに提示する（7 件すべて充足。`mvn -o clean test` = 78 件全件成功）
 - [ ] `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）で判定を受ける
 
 **Completion criteria**:
