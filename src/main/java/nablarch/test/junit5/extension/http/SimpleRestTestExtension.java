@@ -28,8 +28,8 @@ public class SimpleRestTestExtension extends TestEventDispatcherExtension {
     }
 
     @Override
-    protected List<TestRule> resolveTestRules() {
-        List<TestRule> testRules = new ArrayList<>(super.resolveTestRules());
+    protected List<TestRule> resolveInternalTestRules() {
+        List<TestRule> testRules = new ArrayList<>(super.resolveInternalTestRules());
         testRules.add(((SimpleRestTestSupport) support).testDescription);
         return testRules;
     }

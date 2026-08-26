@@ -10,11 +10,19 @@ import nablarch.test.junit5.extension.NablarchTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.List;
 
@@ -22,6 +30,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 
 /**
@@ -29,6 +38,12 @@ import static org.junit.Assert.assertThrows;
  * @author Tanaka Tomoyuki
  */
 class TestEventDispatcherExtensionTest {
+
+    /**
+     * 何も行わないテストメソッドの実行。
+     */
+    private static final InvocationInterceptor.Invocation<Void> NOOP_INVOCATION = () -> null;
+
     final MockTestEventDispatcherExtension sut = new MockTestEventDispatcherExtension();
 
     public TestEventDispatcher publicDispatcher;
@@ -108,7 +123,7 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void beforeEachを実行すると_TestRuleのエミュレートが行われることをテスト() throws Throwable {
+    void beforeEachを実行すると_内部のTestRuleのエミュレートが行われることをテスト() throws Throwable {
         sut.postProcessTestInstance(this, null);
 
         ExtensionContext mockContext = new MockExtensionContext(TestEventDispatcherExtensionTest.class,
@@ -120,7 +135,26 @@ class TestEventDispatcherExtensionTest {
     }
 
     @Test
-    void TestRuleエミュレート時に例外が発生した場合は_発生した例外を原因として持つ実行時例外がスローされること() throws Throwable {
+    void 内部のTestRuleエミュレート時に例外が発生した場合は_発生した例外を原因として持つ実行時例外がスローされること() throws Throwable {
+        Exception exception = new Exception("test");
+
+        TestEventDispatcherExtension sut = new MockTestEventDispatcherExtension() {
+            @Override
+            protected List<TestRule> resolveInternalTestRules() {
+                return Collections.singletonList(new ErrorTestRule(exception));
+            }
+        };
+
+        sut.postProcessTestInstance(this, null);
+
+        final RuntimeException e = assertThrows(RuntimeException.class,
+                () -> sut.beforeEach(MockExtensionContext.any()));
+
+        assertThat(e.getCause(), is(exception));
+    }
+
+    @Test
+    void interceptTestMethodでTestRuleが例外をスローした場合は_その例外がそのままスローされること() throws Throwable {
         Exception exception = new Exception("test");
 
         TestEventDispatcherExtension sut = new MockTestEventDispatcherExtension() {
@@ -132,10 +166,43 @@ class TestEventDispatcherExtensionTest {
 
         sut.postProcessTestInstance(this, null);
 
-        final RuntimeException e = assertThrows(RuntimeException.class,
-                () -> sut.beforeEach(MockExtensionContext.any()));
+        final Exception e = assertThrows(Exception.class,
+                () -> sut.interceptTestMethod(NOOP_INVOCATION, null, MockExtensionContext.any()));
 
-        assertThat(e.getCause(), is(exception));
+        assertThat(e, is(sameInstance(exception)));
+    }
+
+    @Test
+    void resolveTestRulesの基底実装は空のリストを返すことをテスト() {
+        assertThat(sut.resolveTestRules(), is(Collections.emptyList()));
+    }
+
+    /**
+     * {@code intercept} メソッドが{@code final}であることを、リフレクションで表明する。
+     * <p>
+     * この 2 つのメソッドを利用者の Extension がオーバーライドすると、基底の実装が覆い隠され、
+     * {@link TestEventDispatcherExtension#resolveTestRules()} が返した {@link TestRule} が
+     * 何のエラーも起こさないまま適用されなくなる(design.md &sect;4.5 (5))。
+     * {@code final} は、この静かな喪失をコンパイルエラーに変えるために付けたものである。
+     * </p>
+     * <p>
+     * {@code final} を外しても既存のテストは 1 件も落ちないため、
+     * このテストが無いと、次にこのクラスを触る人が{@code final}を外したことに誰も気づけない。
+     * </p>
+     */
+    @Test
+    void TestRuleを適用するinterceptメソッドは_オーバーライドでルールが静かに消えないようfinalであること() throws Exception {
+        Method interceptTestMethod = TestEventDispatcherExtension.class.getDeclaredMethod(
+                "interceptTestMethod",
+                InvocationInterceptor.Invocation.class, ReflectiveInvocationContext.class, ExtensionContext.class);
+        Method interceptTestTemplateMethod = TestEventDispatcherExtension.class.getDeclaredMethod(
+                "interceptTestTemplateMethod",
+                InvocationInterceptor.Invocation.class, ReflectiveInvocationContext.class, ExtensionContext.class);
+
+        assertThat("interceptTestMethod をオーバーライドできると resolveTestRules() のルールが静かに消える",
+                Modifier.isFinal(interceptTestMethod.getModifiers()), is(true));
+        assertThat("interceptTestTemplateMethod をオーバーライドできると resolveTestRules() のルールが静かに消える",
+                Modifier.isFinal(interceptTestTemplateMethod.getModifiers()), is(true));
     }
 
     @Test
@@ -181,6 +248,38 @@ class TestEventDispatcherExtensionTest {
         NablarchTest annotation = sut.findAnnotation(new TemporaryClass(), NablarchTest.class);
 
         assertThat(annotation, is(nullValue()));
+    }
+
+    @Test
+    void findAnnotationのテスト_スーパクラスに設定されたアノテーションは取得できない() {
+        @NablarchTest
+        class AnnotatedSuperClass {}
+        class SubClass extends AnnotatedSuperClass {}
+
+        NablarchTest annotation = sut.findAnnotation(new SubClass(), NablarchTest.class);
+
+        assertThat("取得できるのはテストクラスに直接設定されたアノテーションだけである",
+                annotation, is(nullValue()));
+    }
+
+    @Test
+    void findAnnotationのテスト_他のアノテーションを介して間接的に設定されたアノテーションは取得できない() {
+        @IndirectNablarchTest
+        class TemporaryClass {}
+
+        NablarchTest annotation = sut.findAnnotation(new TemporaryClass(), NablarchTest.class);
+
+        assertThat("他のアノテーションを介して間接的に設定されたアノテーションは取得できない",
+                annotation, is(nullValue()));
+    }
+
+    /**
+     * {@link NablarchTest} を介して間接的に設定するための合成アノテーション。
+     */
+    @NablarchTest
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    @interface IndirectNablarchTest {
     }
 
     /**
