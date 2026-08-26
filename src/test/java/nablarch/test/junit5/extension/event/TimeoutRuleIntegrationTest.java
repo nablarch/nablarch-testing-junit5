@@ -112,7 +112,7 @@ public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
      * {@link CustomTestSupport} が宣言した {@link Timeout} を
      * {@link TestEventDispatcherExtension#resolveTestRules()} で返す Extension。
      * <p>
-     * 基底実装が空のリストを返すため、解説書の例と同じく {@code super.resolveTestRules()} を
+     * 基底実装が空のリストを返すため、 {@code super.resolveTestRules()} を
      * ベースにせず、空のリストにルールを追加して返す。
      * </p>
      */
