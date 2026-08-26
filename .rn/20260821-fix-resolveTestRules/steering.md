@@ -251,7 +251,7 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 - [x] Acceptance criteria の実行結果をユーザーに提示する（7 件すべて充足。`mvn -o clean test` = 78 件全件成功）
 - [x] `/rn:gm` を受けて NTF Step 4（外部依頼）の完了条件7（C0/C1 カバレッジ）と §5 報告を
       `.rn/20260821-fix-resolveTestRules/ntf-step4-report.md` にまとめる
-- [ ] `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）で判定を受ける
+- [x] `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）で判定を受ける → **承認**
 
 **Completion criteria**:
 
@@ -263,18 +263,4 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-27
-- **Last completed**: #6。#7 は `/rn:gm` を受けて NTF Step 4 の完了条件7（C0/C1 カバレッジ）と
-  §5 報告を `.rn/20260821-fix-resolveTestRules/ntf-step4-report.md` にまとめて push 済み（`6276b76`）で判定待ち
-- **Next**: `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）でタスク #7（Evaluation sign-off）の判定を受ける
-- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR
-  https://github.com/nablarch/nablarch-testing-junit5/pull/12 （push 済み・ツリークリーン）。
-  `mvn -o clean test` = 78 件全件成功。C0/C1 は `2ebea7e` / `61712b6` の 2 点とも 100%（同値。
-  `src/main` が両ピンで同一のため。計測手順は `ntf-step4-report.md` §1）。
-  解説書（別リポジトリ `nablarch/nablarch-document`）への申し送りは `document-patch.md`
-  （反映は本モジュールのリリース公開後、`pom.xml` が `6-NEXT-SNAPSHOT` のためバージョン未定）。
-  対象外事項は `follow-up.md`。NTF Step 4 の外部依頼（指示書 `nablarch-document`
-  `f00e9a6:.rn/20260724-ntf-yaml-support/ntf-step4-04-nablarch-testing-junit5.md`）は同ブランチ上で完了。
-  公開済みアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
-  Artifact ツールに削除の口がないため、claude.ai/code/artifacts のギャラリーからユーザー側で削除が必要。
+- **Status**: not suspended
