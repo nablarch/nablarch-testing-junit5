@@ -261,21 +261,8 @@ NTF 自身が必要とする `TestName` / `TestDescription` の実行位置は�
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-08-26
-- **Last completed**: #6（解説書の修正差分案作成）まで完了。#7 は Acceptance criteria の実行結果を
-  ユーザーに提示済み（判定待ち）
-- **Next**: `/rn:ty`（承認）または `/rn:gm`（修正 → 反映して再提示）でタスク #7（Evaluation sign-off）の
-  判定を受ける
-- **Notes**: ブランチ `worktree-fix-resolveTestRules` / ドラフト PR
-  https://github.com/nablarch/nablarch-testing-junit5/pull/12 。ワーキングツリーはクリーン、
-  未解決の未追跡パスなし。解説書（別リポジトリ `nablarch/nablarch-document`）への申し送りは
-  `.rn/20260821-fix-resolveTestRules/document-patch.md`（反映は本モジュールのリリース公開後、
-  `pom.xml` が `6-NEXT-SNAPSHOT` のためバージョン未定）。
-  本セッションのタスクとは別に、NTF Step 4 の外部依頼（指示書
-  `nablarch-document` `f00e9a6:.rn/20260724-ntf-yaml-support/ntf-step4-04-nablarch-testing-junit5.md`）を
-  同ブランチ上で実施し `b7c76a8` で push 済み。src/test のみ、`mvn test` 78件全件成功、
-  `@Ignore` 0件。ディレクターへ報告した表にない不一致1件（`TimeoutRuleIntegrationTest.java:27`/`:45`/`:50`
-  に残る解説書の例への参照）は未修正のまま。
-  公開済みアーティファクト https://claude.ai/code/artifact/746ed304-8f8e-4629-963d-b75f5c96b7bb は
-  Artifact ツールに削除の口がないため、claude.ai/code/artifacts のギャラリーからユーザー側で削除が必要。
+- **Status**: not suspended
+- **Date**: -
+- **Last completed**: -
+- **Next**: -
+- **Notes**: -
