@@ -16,6 +16,10 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -244,6 +248,38 @@ class TestEventDispatcherExtensionTest {
         NablarchTest annotation = sut.findAnnotation(new TemporaryClass(), NablarchTest.class);
 
         assertThat(annotation, is(nullValue()));
+    }
+
+    @Test
+    void findAnnotationのテスト_スーパクラスに設定されたアノテーションは取得できない() {
+        @NablarchTest
+        class AnnotatedSuperClass {}
+        class SubClass extends AnnotatedSuperClass {}
+
+        NablarchTest annotation = sut.findAnnotation(new SubClass(), NablarchTest.class);
+
+        assertThat("取得できるのはテストクラスに直接設定されたアノテーションだけである",
+                annotation, is(nullValue()));
+    }
+
+    @Test
+    void findAnnotationのテスト_他のアノテーションを介して間接的に設定されたアノテーションは取得できない() {
+        @IndirectNablarchTest
+        class TemporaryClass {}
+
+        NablarchTest annotation = sut.findAnnotation(new TemporaryClass(), NablarchTest.class);
+
+        assertThat("他のアノテーションを介して間接的に設定されたアノテーションは取得できない",
+                annotation, is(nullValue()));
+    }
+
+    /**
+     * {@link NablarchTest} を介して間接的に設定するための合成アノテーション。
+     */
+    @NablarchTest
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    @interface IndirectNablarchTest {
     }
 
     /**

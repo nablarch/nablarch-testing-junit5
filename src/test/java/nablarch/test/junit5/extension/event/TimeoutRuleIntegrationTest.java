@@ -77,7 +77,7 @@ public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
     }
 
     @Test
-    void 解説書の例と同じ実装でTimeoutを追加するとテストがタイムアウトすることをテスト() {
+    void resolveTestRulesで返したTimeoutが適用されてテストがタイムアウトすることをテスト() {
         JupiterEngineRunner.ExecutionSummary summary = JupiterEngineRunner.run(SleepingTestFixture.class);
 
         Throwable failure = summary.getOnlyFailure();
@@ -101,7 +101,7 @@ public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
     }
 
     /**
-     * 解説書の例と同じ形の、 {@link Timeout} をルールとして宣言した独自サポートクラス。
+     * {@link Timeout} を {@code @Rule} 付きのフィールドとして宣言した独自サポートクラス。
      */
     static class CustomTestSupport extends TestEventDispatcher {
         @Rule
@@ -109,7 +109,8 @@ public class TimeoutRuleIntegrationTest extends RuleIntegrationTestBase {
     }
 
     /**
-     * 解説書の例と同じ形の、 {@link CustomTestSupport} のルールを再現する Extension。
+     * {@link CustomTestSupport} が宣言した {@link Timeout} を
+     * {@link TestEventDispatcherExtension#resolveTestRules()} で返す Extension。
      * <p>
      * 基底実装が空のリストを返すため、解説書の例と同じく {@code super.resolveTestRules()} を
      * ベースにせず、空のリストにルールを追加して返す。
